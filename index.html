@@ -595,7 +595,7 @@
             constructor() {
                 this.ctx = null;
                 this.isPlaying = false;
-                this.tempo = 82; // Steady, relaxed lo-fi hip hop tempo
+                this.tempo = 82; // Keep BPM exactly the same
                 this.nextNoteTime = 0.0;
                 this.current16thNote = 0;
                 this.totalSteps = 0;
@@ -612,19 +612,26 @@
                     
                     // Smooth, gentle compression
                     this.compressor = this.ctx.createDynamicsCompressor();
-                    this.compressor.threshold.value = -20;
-                    this.compressor.knee.value = 15;
-                    this.compressor.ratio.value = 3;
-                    this.compressor.attack.value = 0.01;
-                    this.compressor.release.value = 0.25;
+                    this.compressor.threshold.value = -18;
+                    this.compressor.knee.value = 10;
+                    this.compressor.ratio.value = 4;
+                    this.compressor.attack.value = 0.005;
+                    this.compressor.release.value = 0.15;
                     
-                    // Lo-fi lowpass filter for buttery warmth
+                    // Crisp filter (High shelf to add air, making it clean and fresh)
+                    this.crispFilter = this.ctx.createBiquadFilter();
+                    this.crispFilter.type = 'highshelf';
+                    this.crispFilter.frequency.value = 7000;
+                    this.crispFilter.gain.value = 4; // Boost the highs for premium clarity
+                    
+                    // Smooth lowpass (shifted up so it still tames digital harshness but sounds crispy overall)
                     this.lofiFilter = this.ctx.createBiquadFilter();
                     this.lofiFilter.type = 'lowpass';
-                    this.lofiFilter.frequency.value = 2200; 
+                    this.lofiFilter.frequency.value = 14000; // Open up the cutoff for fresh/crispy sound
                     
                     this.masterGain.connect(this.compressor);
-                    this.compressor.connect(this.lofiFilter);
+                    this.compressor.connect(this.crispFilter);
+                    this.crispFilter.connect(this.lofiFilter);
                     this.lofiFilter.connect(this.ctx.destination);
 
                     // Pre-generate noise buffer for drums
@@ -664,11 +671,9 @@
                 osc.connect(gain);
                 gain.connect(this.masterGain);
 
-                // Fast pitch drop for punch
                 osc.frequency.setValueAtTime(150, time);
                 osc.frequency.exponentialRampToValueAtTime(40, time + 0.1);
 
-                // Quick envelope
                 gain.gain.setValueAtTime(1.0, time);
                 gain.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
 
@@ -681,10 +686,8 @@
                 const gain = this.ctx.createGain();
                 const filter = this.ctx.createBiquadFilter();
                 
-                // Triangle wave is clearly audible without harsh distortion
                 osc.type = 'triangle'; 
                 
-                // Smooth out the top end of the triangle wave
                 filter.type = 'lowpass';
                 filter.frequency.value = 300; 
 
@@ -694,7 +697,6 @@
 
                 osc.frequency.setValueAtTime(freq, time);
 
-                // Buttery smooth attack and release
                 gain.gain.setValueAtTime(0, time);
                 gain.gain.linearRampToValueAtTime(0.8, time + 0.05); 
                 gain.gain.setTargetAtTime(0.001, time + duration - 0.2, 0.3); 
@@ -709,11 +711,11 @@
                 
                 const hp = this.ctx.createBiquadFilter();
                 hp.type = 'highpass';
-                hp.frequency.value = 6000;
+                hp.frequency.value = 8000; // Shifted up for a much crisper tick
                 
                 const gain = this.ctx.createGain();
                 gain.gain.setValueAtTime(vol, time);
-                gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05); // Short, crisp tick
+                gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
                 
                 noiseSource.connect(hp);
                 hp.connect(gain);
@@ -724,31 +726,30 @@
             }
 
             playSnare(time) {
-                // Noise component
+                // Noise component (Enhanced, un-muffled snap)
                 const noiseSource = this.ctx.createBufferSource();
                 noiseSource.buffer = this.noiseBuffer;
                 
-                const bp = this.ctx.createBiquadFilter();
-                bp.type = 'bandpass';
-                bp.frequency.value = 1500;
-                bp.Q.value = 0.8;
+                const hp = this.ctx.createBiquadFilter();
+                hp.type = 'highpass';
+                hp.frequency.value = 2500; // Use highpass instead of bandpass to allow crisp top end
                 
                 const noiseGain = this.ctx.createGain();
-                noiseGain.gain.setValueAtTime(0.6, time);
-                noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+                noiseGain.gain.setValueAtTime(0.8, time); // Louder snap
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.25);
                 
-                noiseSource.connect(bp);
-                bp.connect(noiseGain);
+                noiseSource.connect(hp);
+                hp.connect(noiseGain);
                 noiseGain.connect(this.masterGain);
                 
-                // Tonal component (body)
+                // Tonal component (Punchy body)
                 const osc = this.ctx.createOscillator();
                 const oscGain = this.ctx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(200, time);
-                osc.frequency.exponentialRampToValueAtTime(100, time + 0.1);
+                osc.frequency.setValueAtTime(250, time);
+                osc.frequency.exponentialRampToValueAtTime(120, time + 0.1);
                 
-                oscGain.gain.setValueAtTime(0.5, time);
+                oscGain.gain.setValueAtTime(0.6, time);
                 oscGain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
                 
                 osc.connect(oscGain);
@@ -770,21 +771,21 @@
                     this.playSnare(time);
                 }
                 
-                if (beat % 2 === 0) {
-                    // Accent on downbeats for groove
-                    const isAccent = (beat % 4 === 0);
-                    this.playHat(time, isAccent ? 0.25 : 0.1);
-                }
+                // Steady Tap Hi-Hats at a higher pace (Every 16th note)
+                const isAccent = (beat % 4 === 0);
+                const isOffbeat = (beat % 2 !== 0);
+                let hatVol = isAccent ? 0.3 : (isOffbeat ? 0.15 : 0.2);
+                this.playHat(time, hatVol);
 
-                // 2. Steady, Predicable Bassline (32-step / 2-bar loop)
+                // 2. Steady, Predicable Bassline
                 const step32 = this.totalSteps % 32;
                 
                 if (step32 === 0) {
-                    this.playBass(time, 73.42, 1.8); // D2
+                    this.playBass(time, 73.42, 1.8); 
                 } else if (step32 === 16) {
-                    this.playBass(time, 87.31, 0.8); // F2
+                    this.playBass(time, 87.31, 0.8); 
                 } else if (step32 === 24) {
-                    this.playBass(time, 65.41, 0.8); // C2
+                    this.playBass(time, 65.41, 0.8); 
                 }
             }
 
