@@ -595,10 +595,12 @@
             constructor() {
                 this.ctx = null;
                 this.isPlaying = false;
-                this.tempo = 78; 
+                this.tempo = 82; // Steady, relaxed lo-fi hip hop tempo
                 this.nextNoteTime = 0.0;
                 this.current16thNote = 0;
+                this.totalSteps = 0;
                 this.timerID = null;
+                this.noiseBuffer = null;
             }
 
             init() {
@@ -606,17 +608,32 @@
                     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
                     
                     this.masterGain = this.ctx.createGain();
-                    this.masterGain.gain.value = 0.9;
+                    this.masterGain.gain.value = 0.85;
                     
+                    // Smooth, gentle compression
                     this.compressor = this.ctx.createDynamicsCompressor();
-                    this.compressor.threshold.value = -15;
-                    this.compressor.knee.value = 10;
-                    this.compressor.ratio.value = 12;
-                    this.compressor.attack.value = 0.002;
-                    this.compressor.release.value = 0.1;
+                    this.compressor.threshold.value = -20;
+                    this.compressor.knee.value = 15;
+                    this.compressor.ratio.value = 3;
+                    this.compressor.attack.value = 0.01;
+                    this.compressor.release.value = 0.25;
+                    
+                    // Lo-fi lowpass filter for buttery warmth
+                    this.lofiFilter = this.ctx.createBiquadFilter();
+                    this.lofiFilter.type = 'lowpass';
+                    this.lofiFilter.frequency.value = 2200; 
                     
                     this.masterGain.connect(this.compressor);
-                    this.compressor.connect(this.ctx.destination);
+                    this.compressor.connect(this.lofiFilter);
+                    this.lofiFilter.connect(this.ctx.destination);
+
+                    // Pre-generate noise buffer for drums
+                    const bufferSize = this.ctx.sampleRate * 2.0;
+                    this.noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const output = this.noiseBuffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
                 }
                 if(this.ctx.state === 'suspended') this.ctx.resume();
                 this.isPlaying = true;
@@ -633,128 +650,141 @@
                 const secondsPerBeat = 60.0 / this.tempo;
                 this.nextNoteTime += 0.25 * secondsPerBeat; 
                 this.current16thNote++;
+                this.totalSteps++;
+                
                 if (this.current16thNote === 16) {
                     this.current16thNote = 0;
                 }
             }
 
-            playDeadPrezBass(time, freq, duration, slideDown=false) {
-                const oscSub = this.ctx.createOscillator();
-                const oscMid = this.ctx.createOscillator();
+            playKick(time) {
+                const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
-                const dist = this.ctx.createWaveShaper();
+                osc.type = 'sine';
+                osc.connect(gain);
+                gain.connect(this.masterGain);
 
-                oscSub.type = 'sine';
-                oscMid.type = 'sawtooth';
+                // Fast pitch drop for punch
+                osc.frequency.setValueAtTime(150, time);
+                osc.frequency.exponentialRampToValueAtTime(40, time + 0.1);
 
-                const filter = this.ctx.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(300, time);
-                filter.frequency.exponentialRampToValueAtTime(80, time + duration);
+                // Quick envelope
+                gain.gain.setValueAtTime(1.0, time);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
 
-                function makeDistCurve(amount) {
-                    let k = amount, n = 44100, curve = new Float32Array(n), deg = Math.PI / 180;
-                    for (let i = 0; i < n; ++i) {
-                        let x = i * 2 / n - 1;
-                        curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
-                    }
-                    return curve;
-                }
-                dist.curve = makeDistCurve(60); 
-
-                oscSub.connect(gain);
-                oscMid.connect(filter);
-                filter.connect(gain);
-                gain.connect(dist);
-                dist.connect(this.masterGain);
-
-                const punchFreq = freq * 1.5;
-                oscSub.frequency.setValueAtTime(punchFreq, time);
-                oscMid.frequency.setValueAtTime(punchFreq, time);
-                oscSub.frequency.exponentialRampToValueAtTime(freq, time + 0.08);
-                oscMid.frequency.exponentialRampToValueAtTime(freq, time + 0.08);
-
-                if(slideDown) {
-                    oscSub.frequency.exponentialRampToValueAtTime(freq * 0.4, time + duration);
-                    oscMid.frequency.exponentialRampToValueAtTime(freq * 0.4, time + duration);
-                }
-
-                gain.gain.setValueAtTime(0, time);
-                gain.gain.linearRampToValueAtTime(1.0, time + 0.02);
-                gain.gain.setTargetAtTime(0.001, time + duration * 0.85, 0.2);
-
-                oscSub.start(time);
-                oscMid.start(time);
-                oscSub.stop(time + duration + 1);
-                oscMid.stop(time + duration + 1);
+                osc.start(time);
+                osc.stop(time + 0.4);
             }
 
-            playHat(time, vol=0.3) {
-                const bufferSize = this.ctx.sampleRate * 0.1;
-                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
-                const noise = this.ctx.createBufferSource();
-                noise.buffer = buffer;
+            playBass(time, freq, duration) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const filter = this.ctx.createBiquadFilter();
+                
+                // Triangle wave is clearly audible without harsh distortion
+                osc.type = 'triangle'; 
+                
+                // Smooth out the top end of the triangle wave
+                filter.type = 'lowpass';
+                filter.frequency.value = 300; 
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.masterGain);
+
+                osc.frequency.setValueAtTime(freq, time);
+
+                // Buttery smooth attack and release
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(0.8, time + 0.05); 
+                gain.gain.setTargetAtTime(0.001, time + duration - 0.2, 0.3); 
+
+                osc.start(time);
+                osc.stop(time + duration + 1);
+            }
+
+            playHat(time, vol) {
+                const noiseSource = this.ctx.createBufferSource();
+                noiseSource.buffer = this.noiseBuffer;
+                
                 const hp = this.ctx.createBiquadFilter();
                 hp.type = 'highpass';
-                hp.frequency.value = 8500;
+                hp.frequency.value = 6000;
+                
                 const gain = this.ctx.createGain();
                 gain.gain.setValueAtTime(vol, time);
-                gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
-                noise.connect(hp);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05); // Short, crisp tick
+                
+                noiseSource.connect(hp);
                 hp.connect(gain);
                 gain.connect(this.masterGain);
-                noise.start(time);
+                
+                noiseSource.start(time);
+                noiseSource.stop(time + 0.1);
             }
 
             playSnare(time) {
-                const bufferSize = this.ctx.sampleRate * 0.25;
-                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
-                const noise = this.ctx.createBufferSource();
-                noise.buffer = buffer;
+                // Noise component
+                const noiseSource = this.ctx.createBufferSource();
+                noiseSource.buffer = this.noiseBuffer;
+                
                 const bp = this.ctx.createBiquadFilter();
                 bp.type = 'bandpass';
                 bp.frequency.value = 1500;
                 bp.Q.value = 0.8;
-                const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.8, time);
-                gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
-                noise.connect(bp);
-                bp.connect(gain);
-                gain.connect(this.masterGain);
                 
+                const noiseGain = this.ctx.createGain();
+                noiseGain.gain.setValueAtTime(0.6, time);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+                
+                noiseSource.connect(bp);
+                bp.connect(noiseGain);
+                noiseGain.connect(this.masterGain);
+                
+                // Tonal component (body)
                 const osc = this.ctx.createOscillator();
                 const oscGain = this.ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(250, time);
-                osc.frequency.exponentialRampToValueAtTime(80, time + 0.15);
-                oscGain.gain.setValueAtTime(0.6, time);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, time);
+                osc.frequency.exponentialRampToValueAtTime(100, time + 0.1);
+                
+                oscGain.gain.setValueAtTime(0.5, time);
                 oscGain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+                
                 osc.connect(oscGain);
                 oscGain.connect(this.masterGain);
                 
-                noise.start(time);
+                noiseSource.start(time);
                 osc.start(time);
-                osc.stop(time + 0.3);
+                noiseSource.stop(time + 0.25);
+                osc.stop(time + 0.25);
             }
 
             scheduleNote(beat, time) {
-                const freq = 36.71; 
+                // 1. Steady Drums
+                if (beat === 0 || beat === 7 || beat === 10) {
+                    this.playKick(time);
+                }
                 
-                if (beat === 0) this.playDeadPrezBass(time, freq, 1.4, true);
-                if (beat === 7) this.playDeadPrezBass(time, freq, 0.35, false);
-                if (beat === 9) this.playDeadPrezBass(time, freq, 0.35, false);
-                if (beat === 10) this.playDeadPrezBass(time, freq, 1.4, true);
-                
-                if (beat === 4 || beat === 12) this.playSnare(time);
+                if (beat === 4 || beat === 12) {
+                    this.playSnare(time);
+                }
                 
                 if (beat % 2 === 0) {
-                    this.playHat(time, 0.3);
-                } else if (beat === 14 || beat === 15) {
-                    this.playHat(time, 0.2);
+                    // Accent on downbeats for groove
+                    const isAccent = (beat % 4 === 0);
+                    this.playHat(time, isAccent ? 0.25 : 0.1);
+                }
+
+                // 2. Steady, Predicable Bassline (32-step / 2-bar loop)
+                const step32 = this.totalSteps % 32;
+                
+                if (step32 === 0) {
+                    this.playBass(time, 73.42, 1.8); // D2
+                } else if (step32 === 16) {
+                    this.playBass(time, 87.31, 0.8); // F2
+                } else if (step32 === 24) {
+                    this.playBass(time, 65.41, 0.8); // C2
                 }
             }
 
