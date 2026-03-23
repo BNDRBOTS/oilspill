@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BNDR LLC | System Nexus [v2.0]</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #010101;
+            --fg: #ffffff;
+            --accent-cyan: #00f0ff;
+            --accent-violet: #8a2be2;
+            --glass: rgba(10, 10, 12, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.05);
+            --ease-surgical: cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            color: var(--fg);
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden;
+            overscroll-behavior: none;
+        }
+
+        /* --- GPU RAYMARCH CANVAS --- */
+        #glcanvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* --- TACTICAL OVERLAYS --- */
+        .noise-layer {
+            position: fixed; inset: 0;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            z-index: 1; pointer-events: none;
+        }
+
+        .vignette {
+            position: fixed; inset: 0;
+            background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.8) 100%);
+            z-index: 2; pointer-events: none;
+        }
+
+        /* --- KINETIC CURSOR --- */
+        #cursor-dot {
+            position: fixed; top: 0; left: 0;
+            width: 4px; height: 4px; background: var(--fg);
+            border-radius: 50%; z-index: 10000; pointer-events: none;
+            transform: translate(-50%, -50%);
+        }
+        #cursor-ring {
+            position: fixed; top: 0; left: 0;
+            width: 32px; height: 32px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%; z-index: 9999; pointer-events: none;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s var(--ease-surgical), height 0.3s var(--ease-surgical), border-color 0.3s;
+            backdrop-filter: invert(10%);
+        }
+        body.hover-active #cursor-ring {
+            width: 64px; height: 64px;
+            border-color: var(--accent-cyan);
+            background: rgba(0, 240, 255, 0.05);
+        }
+
+        /* --- SCROLL ARCHITECTURE --- */
+        #smooth-wrapper {
+            position: absolute; top: 0; left: 0;
+            width: 100%; will-change: transform;
+            z-index: 10;
+        }
+
+        /* --- TYPOGRAPHY & LAYOUT --- */
+        .container {
+            max-width: 1600px; margin: 0 auto;
+            padding: 0 4vw;
+        }
+
+        .mono {
+            font-family: 'Space Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        section {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 15vh 0;
+        }
+
+        /* EXCLUSION TEXT: Interacts directly with the WebGL volume */
+        .hero-title {
+            font-size: clamp(4rem, 12vw, 14rem);
+            font-weight: 700;
+            line-height: 0.8;
+            letter-spacing: -0.05em;
+            mix-blend-mode: exclusion;
+            color: #fff;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 5;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1.2rem, 2vw, 1.8rem);
+            color: rgba(255,255,255,0.6);
+            max-width: 600px;
+            margin-top: 2rem;
+            line-height: 1.4;
+        }
+
+        .label-tag {
+            font-size: 0.75rem; color: var(--accent-cyan);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            padding: 0.4rem 1rem; border-radius: 20px;
+            display: inline-block; margin-bottom: 2rem;
+            backdrop-filter: blur(4px);
+        }
+
+        /* --- LUX GLASS COMPONENTS --- */
+        .glass-panel {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 3rem;
+            backdrop-filter: blur(30px) saturate(150%);
+            -webkit-backdrop-filter: blur(30px) saturate(150%);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+            transition: transform 0.6s var(--ease-surgical), border-color 0.6s;
+        }
+
+        /* --- THE ARTIFACT GRID (Projects) --- */
+        .project-list {
+            display: flex; flex-direction: column; gap: 1rem;
+            margin-top: 4rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            padding-top: 2rem;
+        }
+
+        .project-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 2rem;
+            background: rgba(255,255,255,0.01);
+            border: 1px solid transparent;
+            border-radius: 16px;
+            text-decoration: none; color: var(--fg);
+            position: relative; overflow: hidden;
+            transition: all 0.5s var(--ease-surgical);
+        }
+
+        .project-row::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.05), transparent);
+            transform: translateX(-100%); transition: transform 0.8s;
+            pointer-events: none;
+        }
+
+        .project-row:hover {
+            background: rgba(255,255,255,0.03);
+            border-color: rgba(255,255,255,0.1);
+            transform: translateX(20px);
+        }
+
+        .project-row:hover::before { transform: translateX(100%); }
+
+        .project-row h3 { font-size: clamp(2rem, 4vw, 4rem); font-weight: 400; letter-spacing: -0.02em; }
+        .project-row .meta { color: rgba(255,255,255,0.4); font-size: 0.9rem; }
+        .project-row .arrow { 
+            width: 40px; height: 40px; border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.2);
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.4s, border-color 0.4s;
+        }
+        .project-row:hover .arrow {
+            background: var(--fg); border-color: var(--fg); color: var(--bg);
+        }
+
+        /* --- MAGNETIC PILLS (Socials) --- */
+        .grid-layout {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 4rem;
+        }
+        
+        @media (max-width: 900px) { .grid-layout { grid-template-columns: 1fr; } }
+
+        .social-matrix {
+            display: flex; flex-wrap: wrap; gap: 1rem;
+        }
+
+        .mag-wrap { position: relative; display: inline-block; }
+        
+        .pill {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 1rem 2rem;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 40px; color: var(--fg); text-decoration: none;
+            transition: background 0.3s, border-color 0.3s;
+            will-change: transform;
+            font-size: 1rem; letter-spacing: 0.02em;
+        }
+
+        .pill:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(0, 240, 255, 0.5);
+        }
+
+        /* --- FOOTER / PRIVACY --- */
+        footer {
+            padding: 8rem 0 4rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            margin-top: 10vh;
+        }
+
+        .privacy-box {
+            background: rgba(0,0,0,0.6);
+            border-left: 2px solid var(--accent-violet);
+            padding: 2rem; margin-top: 2rem;
+            font-size: 0.85rem; color: rgba(255,255,255,0.5);
+            border-radius: 0 16px 16px 0;
+            line-height: 1.6;
+        }
+
+        .contact-stack p {
+            margin-bottom: 0.5rem; color: rgba(255,255,255,0.7);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- CORE GPU ENGINE -->
+    <canvas id="glcanvas"></canvas>
+    <div class="noise-layer"></div>
+    <div class="vignette"></div>
+
+    <!-- KINETIC CURSOR -->
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+
+    <!-- SMOOTH SCROLL ARCHITECTURE -->
+    <div id="smooth-wrapper">
+        <div class="container">
+            
+            <!-- SECTION: HERO -->
+            <section id="hero">
+                <div class="label-tag mono">Identity Infrastructure™ Validated</div>
+                <h1 class="hero-title">BNDR LLC</h1>
+                <p class="hero-subtitle">
+                    Forensic product execution. Architecture forged for the spatial computing future. 
+                    Zero boilerplate. Maximum lethality.
+                </p>
+                <div class="social-matrix" style="margin-top: 3rem;">
+                    <div class="mag-wrap"><a href="mailto:bndr.labs@gmail.com" class="pill mag-target" data-hover>bndr.labs@gmail.com</a></div>
+                    <div class="mag-wrap"><a href="tel:7179197731" class="pill mag-target" data-hover>717-919-7731</a></div>
+                </div>
+            </section>
+
+            <!-- SECTION: DEPLOYED ARTIFACTS -->
+            <section id="work">
+                <div class="label-tag mono">Execution Log</div>
+                <h2 style="font-size: 2rem; font-weight: 200;">Deployed Artifacts</h2>
+                
+                <div class="project-list">
+                    <a href="https://bndrbots.github.io/resourcecite/#home" target="_blank" class="project-row" data-hover>
+                        <div><span class="meta mono">001</span><h3>ResourceCite</h3></div>
+                        <div class="arrow mono">↗</div>
+                    </a>
+                    <a href="https://bndrbots.github.io/crystal_love/" target="_blank" class="project-row" data-hover>
+                        <div><span class="meta mono">002</span><h3>Crystal Love</h3></div>
+                        <div class="arrow mono">↗</div>
+                    </a>
+                    <a href="https://bndrbots.github.io/sport_formal/" target="_blank" class="project-row" data-hover>
+                        <div><span class="meta mono">003</span><h3>Sport Formal</h3></div>
+                        <div class="arrow mono">↗</div>
+                    </a>
+                    <a href="https://bndrbots.github.io/CRYSTAL-GATE/" target="_blank" class="project-row" data-hover>
+                        <div><span class="meta mono">004</span><h3>Crystal Gate</h3></div>
+                        <div class="arrow mono">↗</div>
+                    </a>
+                    <a href="https://bndrbots.github.io/immersion/" target="_blank" class="project-row" data-hover>
+                        <div><span class="meta mono">005</span><h3>Immersion</h3></div>
+                        <div class="arrow mono">↗</div>
+                    </a>
+                    <a href="https://bndrbots.github.io/white_carousel/" target="_blank" class="project-row" data-hover>
+                        <div><span class="meta mono">006</span><h3>White Carousel</h3></div>
+                        <div class="arrow mono">↗</div>
+                    </a>
+                    <a href="https://bndrbots.github.io/ShadowGraffiti/" target="_blank" class="project-row" data-hover>
+                        <div><span class="meta mono">007</span><h3>Shadow Graffiti</h3></div>
+                        <div class="arrow mono">↗</div>
+                    </a>
+                    <a href="https://bndrbots.github.io/BNDRVoice/" target="_blank" class="project-row" data-hover>
+                        <div><span class="meta mono">008</span><h3>BNDR Voice</h3></div>
+                        <div class="arrow mono">↗</div>
+                    </a>
+                    <a href="https://bndrbots.github.io/apexsound" target="_blank" class="project-row" data-hover>
+                        <div><span class="meta mono">009</span><h3>Apex Sound</h3></div>
+                        <div class="arrow mono">↗</div>
+                    </a>
+                </div>
+            </section>
+
+            <!-- SECTION: NETWORK & FOOTER -->
+            <footer>
+                <div class="grid-layout">
+                    <!-- Socials -->
+                    <div>
+                        <div class="label-tag mono" style="margin-bottom: 1rem;">Network Grid</div>
+                        <div class="social-matrix">
+                            <div class="mag-wrap"><a href="https://www.linkedin.com/in/bndrtech/" target="_blank" class="pill mag-target" data-hover>LinkedIn</a></div>
+                            <div class="mag-wrap"><a href="https://github.com/BNDRBOTS" target="_blank" class="pill mag-target" data-hover>GitHub</a></div>
+                            <div class="mag-wrap"><a href="https://substack.com/@bndrllc" target="_blank" class="pill mag-target" data-hover>Substack</a></div>
+                            <div class="mag-wrap"><a href="https://www.instagram.com/bndrllc" target="_blank" class="pill mag-target" data-hover>Instagram</a></div>
+                            <div class="mag-wrap"><a href="https://www.facebook.com/BNDRLLC" target="_blank" class="pill mag-target" data-hover>Facebook</a></div>
+                            <div class="mag-wrap"><a href="https://promptbase.com/profile/bndrllc" target="_blank" class="pill mag-target" data-hover>PromptBase</a></div>
+                            <div class="mag-wrap"><a href="https://bndrllc.gumroad.com/" target="_blank" class="pill mag-target" data-hover>Gumroad</a></div>
+                            <div class="mag-wrap"><a href="https://buymeacoffee.com/bndr" target="_blank" class="pill mag-target" data-hover>BuyMeACoffee</a></div>
+                        </div>
+                    </div>
+
+                    <!-- HQ / Legal -->
+                    <div class="glass-panel">
+                        <div class="contact-stack mono" style="font-size: 0.9rem;">
+                            <p style="color: var(--fg); font-weight: bold; margin-bottom: 1rem;">HQ Coordinates</p>
+                            <p>BNDR LLC</p>
+                            <p>1896 East Innovation Park Drive, STE 100</p>
+                            <p>Oro Valley, AZ 85755</p>
+                            <p style="margin-top: 2rem;">&copy; 2026 BNDR LLC. All rights reserved.</p>
+                        </div>
+                        
+                        <div class="privacy-box">
+                            <strong style="color: var(--fg);">Notice at Collection</strong><br><br>
+                            BNDR LLC collects the personal information you submit here — such as your name, business name, email address, phone number, billing details, message content, IP address, browser/device information, and related usage data — to respond to your inquiry, provide requested services, process payments, calculate taxes, maintain security, and comply with legal obligations. We retain contact inquiries for up to 1 year, IP addresses and server logs for up to 90 days.
+                        </div>
+                    </div>
+                </div>
+            </footer>
+
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- GPU SHADERS: SURGICAL SDF RAYMARCHING      -->
+    <!-- ========================================== -->
+    <script type="x-shader/x-vertex" id="vs">
+        attribute vec2 position;
+        void main() { gl_Position = vec4(position, 0.0, 1.0); }
+    </script>
+    <script type="x-shader/x-fragment" id="fs">
+        precision highp float;
+        uniform vec2 u_res;
+        uniform float u_time;
+        uniform vec2 u_mouse;
+        uniform float u_scroll;
+        uniform float u_velo; // Scroll velocity for distortion
+
+        // 3D Noise for displacement
+        vec3 hash(vec3 p) {
+            p = vec3(dot(p,vec3(127.1,311.7, 74.7)),
+                     dot(p,vec3(269.5,183.3,246.1)),
+                     dot(p,vec3(113.5,271.9,124.6)));
+            return -1.0 + 2.0*fract(sin(p)*43758.5453123);
+        }
+        float noise(vec3 p) {
+            vec3 i = floor(p);
+            vec3 f = fract(p);
+            vec3 u = f*f*(3.0-2.0*f);
+            return mix(mix(mix(dot(hash(i+vec3(0,0,0)),f-vec3(0,0,0)), 
+                               dot(hash(i+vec3(1,0,0)),f-vec3(1,0,0)),u.x),
+                           mix(dot(hash(i+vec3(0,1,0)),f-vec3(0,1,0)), 
+                               dot(hash(i+vec3(1,1,0)),f-vec3(1,1,0)),u.x),u.y),
+                       mix(mix(dot(hash(i+vec3(0,0,1)),f-vec3(0,0,1)), 
+                               dot(hash(i+vec3(1,0,1)),f-vec3(1,0,1)),u.x),
+                           mix(dot(hash(i+vec3(0,1,1)),f-vec3(0,1,1)), 
+                               dot(hash(i+vec3(1,1,1)),f-vec3(1,1,1)),u.x),u.y),u.z);
+        }
+
+        // SDF primitives
+        mat2 rot(float a) {
+            float s = sin(a), c = cos(a);
+            return mat2(c, -s, s, c);
+        }
+
+        float smin(float a, float b, float k) {
+            float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+            return mix(b, a, h) - k * h * (1.0 - h);
+        }
+
+        float map(vec3 p) {
+            // Apply mouse / scroll rotations
+            p.xz *= rot(u_time * 0.1 + u_mouse.x * 2.0);
+            p.yz *= rot(u_time * 0.05 + u_scroll * 0.002 - u_mouse.y * 2.0);
+
+            // Morphing logic based on velocity and time
+            float d1 = length(p) - 1.5; // Base sphere
+            
+            // Complex volumetric displacement
+            float n = noise(p * 2.0 + u_time * 0.5) * 0.5;
+            n += noise(p * 4.0 - u_time * 0.2) * 0.25;
+            
+            // Add scroll velocity spike
+            float veloSpike = u_velo * 0.02 * noise(p * 8.0);
+            
+            return d1 + n + veloSpike;
+        }
+
+        // Normal calculation
+        vec3 calcNormal(vec3 p) {
+            vec2 e = vec2(0.001, 0.0);
+            return normalize(vec3(
+                map(p + e.xyy) - map(p - e.xyy),
+                map(p + e.yxy) - map(p - e.yxy),
+                map(p + e.yyx) - map(p - e.yyx)
+            ));
+        }
+
+        void main() {
+            vec2 uv = (gl_FragCoord.xy - 0.5 * u_res.xy) / u_res.y;
+            
+            // Ray setup
+            vec3 ro = vec3(0.0, 0.0, 4.0);
+            vec3 rd = normalize(vec3(uv, -1.0));
+
+            // Raymarching
+            float t = 0.0;
+            float max_t = 10.0;
+            vec3 p;
+            for(int i = 0; i < 64; i++) {
+                p = ro + rd * t;
+                float d = map(p);
+                if(d < 0.001 || t > max_t) break;
+                t += d * 0.7; // Dampen step for noise stability
+            }
+
+            // Shading & Lighting (CodeDaemon Signature Palette)
+            vec3 col = vec3(0.0);
+            
+            if(t < max_t) {
+                vec3 n = calcNormal(p);
+                vec3 v = -rd;
+                
+                // Lights
+                vec3 l1 = normalize(vec3(1.0, 1.0, 1.0)); // Main
+                vec3 l2 = normalize(vec3(-1.0, -1.0, -0.5)); // Back rim
+                
+                // Diffuse
+                float dif = max(dot(n, l1), 0.0);
+                
+                // Fresnel
+                float fresnel = pow(1.0 - max(dot(n, v), 0.0), 3.0);
+                
+                // Colors
+                vec3 baseColor = vec3(0.02, 0.03, 0.05); // Deep void body
+                vec3 cyanGlow = vec3(0.0, 0.94, 1.0) * fresnel * 1.5;
+                vec3 violetGlow = vec3(0.54, 0.17, 0.89) * max(dot(n, l2), 0.0);
+                
+                col = baseColor * dif + cyanGlow + violetGlow;
+                
+                // Specular core
+                vec3 h = normalize(l1 + v);
+                float spec = pow(max(dot(n, h), 0.0), 32.0);
+                col += spec * vec3(1.0);
+            }
+
+            // Atmosphere / Fog fade out
+            col = mix(col, vec3(0.0), 1.0 - exp(-0.1 * t * t));
+            
+            // Output
+            gl_FragColor = vec4(pow(col, vec3(1.0/2.2)), 1.0); // Gamma correct
+        }
+    </script>
+
+    <!-- ========================================== -->
+    <!-- ENGINE LOGIC: ZERO DEPENDENCY. RAW PERF.   -->
+    <!-- ========================================== -->
+    <script>
+        // --- 0. CENTRAL STATE (Guards against execution sequence errors) ---
+        const sys = {
+            scroll: { current: 0, target: 0, ease: 0.08, velo: 0 },
+            mouse: { x: 0, y: 0, tx: 0, ty: 0 },
+            screen: { w: window.innerWidth, h: window.innerHeight },
+            time: { start: Date.now(), delta: 0, last: Date.now() }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- 1. RAYMARCHING GPU ENGINE ---
+            const canvas = document.getElementById('glcanvas');
+            const gl = canvas.getContext('webgl', { alpha: false, antialias: false });
+            
+            if (gl) {
+                const compile = (type, src) => {
+                    const s = gl.createShader(type);
+                    gl.shaderSource(s, src);
+                    gl.compileShader(s);
+                    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+                        console.error(gl.getShaderInfoLog(s));
+                        return null;
+                    }
+                    return s;
+                };
+
+                const prog = gl.createProgram();
+                gl.attachShader(prog, compile(gl.VERTEX_SHADER, document.getElementById('vs').textContent));
+                gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, document.getElementById('fs').textContent));
+                gl.linkProgram(prog);
+                gl.useProgram(prog);
+
+                const posBuf = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+                
+                const posLoc = gl.getAttribLocation(prog, "position");
+                gl.enableVertexAttribArray(posLoc);
+                gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+                const uRes = gl.getUniformLocation(prog, "u_res");
+                const uTime = gl.getUniformLocation(prog, "u_time");
+                const uMouse = gl.getUniformLocation(prog, "u_mouse");
+                const uScroll = gl.getUniformLocation(prog, "u_scroll");
+                const uVelo = gl.getUniformLocation(prog, "u_velo");
+
+                const resize = () => {
+                    sys.screen.w = window.innerWidth;
+                    sys.screen.h = window.innerHeight;
+                    canvas.width = sys.screen.w;
+                    canvas.height = sys.screen.h;
+                    gl.viewport(0, 0, sys.screen.w, sys.screen.h);
+                    gl.uniform2f(uRes, sys.screen.w, sys.screen.h);
+                };
+                window.addEventListener('resize', resize);
+                resize();
+
+                const renderGL = () => {
+                    const now = Date.now();
+                    sys.time.delta = (now - sys.time.last) / 1000;
+                    sys.time.last = now;
+                    
+                    // Interpolate mouse for smooth shader uniforms
+                    sys.mouse.x += (sys.mouse.tx - sys.mouse.x) * 0.05;
+                    sys.mouse.y += (sys.mouse.ty - sys.mouse.y) * 0.05;
+                    
+                    // Normalized mouse coords for shader (-1 to 1)
+                    const nx = (sys.mouse.x / sys.screen.w) * 2 - 1;
+                    const ny = -(sys.mouse.y / sys.screen.h) * 2 + 1;
+
+                    gl.uniform1f(uTime, (now - sys.time.start) / 1000.0);
+                    gl.uniform2f(uMouse, nx, ny);
+                    gl.uniform1f(uScroll, sys.scroll.current);
+                    gl.uniform1f(uVelo, Math.abs(sys.scroll.velo));
+                    
+                    gl.drawArrays(gl.TRIANGLES, 0, 6);
+                };
+
+                // Inject GL render into main loop later
+                sys.renderGL = renderGL;
+            } else {
+                canvas.style.background = "#010101"; // Fallback
+            }
+
+            // --- 2. DETERMINISTIC LERP SCROLL ---
+            const wrapper = document.getElementById('smooth-wrapper');
+            const body = document.body;
+            
+            const setHeight = () => { body.style.height = `${wrapper.getBoundingClientRect().height}px`; };
+            window.addEventListener('resize', setHeight);
+            window.addEventListener('scroll', () => { sys.scroll.target = window.scrollY; });
+            setTimeout(setHeight, 500);
+
+            // --- 3. KINETIC CURSOR & PHYSICS ---
+            const dot = document.getElementById('cursor-dot');
+            const ring = document.getElementById('cursor-ring');
+            let cx = sys.screen.w/2, cy = sys.screen.h/2;
+            let rx = cx, ry = cy;
+
+            window.addEventListener('mousemove', (e) => {
+                sys.mouse.tx = e.clientX; sys.mouse.ty = e.clientY;
+                cx = e.clientX; cy = e.clientY;
+                dot.style.transform = `translate(calc(${cx}px - 50%), calc(${cy}px - 50%))`;
+            });
+
+            // Magnetic DOM targets
+            document.querySelectorAll('.mag-wrap').forEach(wrap => {
+                const target = wrap.querySelector('.mag-target');
+                wrap.addEventListener('mousemove', (e) => {
+                    const r = wrap.getBoundingClientRect();
+                    const tx = (e.clientX - (r.left + r.width/2)) * 0.3;
+                    const ty = (e.clientY - (r.top + r.height/2)) * 0.3;
+                    target.style.transform = `translate(${tx}px, ${ty}px)`;
+                });
+                wrap.addEventListener('mouseleave', () => { target.style.transform = `translate(0,0)`; });
+            });
+
+            // Hover states for cursor expansion
+            document.querySelectorAll('[data-hover]').forEach(el => {
+                el.addEventListener('mouseenter', () => body.classList.add('hover-active'));
+                el.addEventListener('mouseleave', () => body.classList.remove('hover-active'));
+            });
+
+            // --- 4. MASTER RENDER LOOP (120Hz Safe) ---
+            const loop = () => {
+                // Scroll integration
+                const prev = sys.scroll.current;
+                sys.scroll.current += (sys.scroll.target - sys.scroll.current) * sys.scroll.ease;
+                sys.scroll.velo = sys.scroll.current - prev;
+                wrapper.style.transform = `translate3d(0, ${-sys.scroll.current}px, 0)`;
+
+                // Cursor ring integration (Spring-like)
+                rx += (cx - rx) * 0.15;
+                ry += (cy - ry) * 0.15;
+                ring.style.transform = `translate(calc(${rx}px - 50%), calc(${ry}px - 50%))`;
+
+                // GL Engine
+                if(sys.renderGL) sys.renderGL();
+
+                requestAnimationFrame(loop);
+            };
+            loop();
+        });
+    </script>
+</body>
+</html>
