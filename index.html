@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BNDR LLC | System Nexus [v2.0]</title>
+    <title>BNDR LLC | BNDR LLC | Immersive Web Designs</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #010101;
+            --bg: #000000;
             --fg: #ffffff;
-            --accent-cyan: #ccff00; /* Hijacked for Hype Neon Yellow */
-            --accent-violet: #ff0055; /* Hijacked for Streetwear Pink */
-            --glass: rgba(10, 10, 12, 0.4);
-            --glass-border: rgba(255, 255, 255, 0.05);
+            --accent-cyan: #d4ff00; /* Hyper Neon Yellow/Cyan */
+            --accent-violet: #ff0055; /* Deep Streetwear Magenta */
+            --glass-border: rgba(255, 255, 255, 0.08);
             --ease-surgical: cubic-bezier(0.19, 1, 0.22, 1);
         }
 
@@ -27,15 +26,16 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
+        /* --- SURGICAL OVERRIDE: ROOT CONTAINING BLOCK FIX --- */
         body, html {
             width: 100%;
-            height: 100%;
+            min-height: 100vh;
             background: var(--bg);
             color: var(--fg);
-            font-family: 'Space Mono', monospace; /* Switched body to brutal mono */
-            overflow: hidden;
+            font-family: 'Space Mono', monospace;
+            overflow-x: hidden; /* Allows native vertical scroll tracking for the kinetic JS */
             overscroll-behavior: none;
-            perspective: 1000px; /* Spatial OS Depth */
+            /* Removed perspective: 1000px; which hijacks position:fixed containing blocks */
         }
 
         /* --- GPU RAYMARCH CANVAS --- */
@@ -50,13 +50,13 @@
         /* --- TACTICAL OVERLAYS --- */
         .noise-layer {
             position: fixed; inset: 0;
-            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
             z-index: 1; pointer-events: none;
         }
 
         .vignette {
             position: fixed; inset: 0;
-            background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.8) 100%);
+            background: radial-gradient(circle at center, transparent 10%, #000000 120%);
             z-index: 2; pointer-events: none;
         }
 
@@ -64,22 +64,70 @@
         #cursor-dot {
             position: fixed; top: 0; left: 0;
             width: 4px; height: 4px; background: var(--fg);
-            border-radius: 50%; z-index: 10000; pointer-events: none;
+            border-radius: 50%; z-index: 100000; pointer-events: none;
             transform: translate(-50%, -50%);
+            transition: opacity 0.2s;
         }
         #cursor-ring {
             position: fixed; top: 0; left: 0;
             width: 32px; height: 32px;
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 50%; z-index: 9999; pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 50%; z-index: 99999; pointer-events: none;
             transform: translate(-50%, -50%);
-            transition: width 0.3s var(--ease-surgical), height 0.3s var(--ease-surgical), border-color 0.3s;
+            transition: width 0.3s var(--ease-surgical), height 0.3s var(--ease-surgical), border-color 0.3s, opacity 0.2s;
             backdrop-filter: invert(10%);
         }
         body.hover-active #cursor-ring {
             width: 64px; height: 64px;
             border-color: var(--accent-cyan);
-            background: rgba(0, 240, 255, 0.05);
+            background: rgba(212, 255, 0, 0.05);
+        }
+        body.input-hover #cursor-dot, body.input-hover #cursor-ring {
+            opacity: 0;
+        }
+
+        /* --- HARDWARE I/O SWITCH --- */
+        .io-container {
+            position: fixed;
+            top: 5vh; right: 4vw;
+            z-index: 9001;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.5rem;
+        }
+        .io-label {
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+            letter-spacing: 0.1em;
+            text-shadow: 2px 2px 0px #000;
+        }
+        .io-switch {
+            width: 70px; height: 36px;
+            background: rgba(0,0,0,0.8);
+            border: 3px solid var(--accent-cyan);
+            border-radius: 0;
+            position: relative;
+            box-shadow: 6px 6px 0px var(--accent-violet);
+            transition: all 0.3s cubic-bezier(0.19,1,0.22,1);
+            pointer-events: auto;
+        }
+        .io-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 2px;
+            width: 26px; height: 26px;
+            background: var(--accent-cyan);
+            transition: all 0.3s cubic-bezier(0.19,1,0.22,1);
+        }
+        .io-switch:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0px var(--accent-violet); }
+        .io-switch[aria-pressed="true"] {
+            border-color: var(--accent-violet);
+            box-shadow: 6px 6px 0px var(--accent-cyan);
+        }
+        .io-switch[aria-pressed="true"]::after {
+            left: calc(100% - 28px);
+            background: var(--accent-violet);
         }
 
         /* --- SCROLL ARCHITECTURE --- */
@@ -88,53 +136,123 @@
             width: 100%; will-change: transform, filter, opacity;
             z-index: 10;
             transform-origin: center top;
+            transition: filter 0.6s var(--ease-surgical), transform 0.6s var(--ease-surgical);
+        }
+        body.modal-open #smooth-wrapper {
+            filter: blur(15px) brightness(0.3) saturate(80%);
+            transform: scale(0.97) translateY(-2vh) !important;
+            pointer-events: none;
         }
 
-        /* --- SPATIAL ROUTER VIEWER --- */
-        #artifact-viewer {
+        /* --- BULLETPROOF MODAL SYSTEM --- */
+        #contact-modal {
             position: fixed; inset: 0;
-            z-index: 9000;
-            background: rgba(2, 2, 3, 0.75);
-            backdrop-filter: blur(40px) saturate(180%);
-            -webkit-backdrop-filter: blur(40px) saturate(180%);
-            opacity: 0; pointer-events: none;
-            display: flex; flex-direction: column;
-            transition: opacity 0.6s var(--ease-surgical);
+            z-index: 99995;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; 
+            visibility: hidden; /* Hard render block */
+            background: rgba(0, 0, 0, 0.4);
+            transition: opacity 0.5s var(--ease-surgical), visibility 0.5s;
+            padding: 4vw;
         }
-        #artifact-viewer.active {
-            opacity: 1; pointer-events: auto;
+        #contact-modal.active {
+            opacity: 1; 
+            visibility: visible;
+            pointer-events: auto;
         }
 
-        .viewer-header {
-            height: 80px; width: 100%;
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 4vw;
-            border-bottom: 1px solid var(--glass-border);
-            background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 100%);
+        .modal-glass {
+            background: rgba(10, 10, 12, 0.92); /* Highly opaque fallback */
+            border: 2px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 4rem;
+            width: 100%; max-width: 650px;
+            max-height: 90vh; overflow-y: auto;
+            backdrop-filter: blur(30px) saturate(150%);
+            -webkit-backdrop-filter: blur(30px) saturate(150%);
+            box-shadow: 0 40px 100px rgba(0,0,0,0.99), inset 0 2px 0 rgba(255,255,255,0.05);
+            transform: translateY(40px) scale(0.95);
+            transition: transform 0.6s var(--ease-surgical);
+            position: relative;
         }
-        .viewer-title {
-            font-family: 'Space Mono', monospace; color: var(--accent-cyan);
-            font-size: 0.9rem; letter-spacing: 0.1em; text-transform: uppercase;
+        
+        #contact-modal.active .modal-glass {
+            transform: translateY(0) scale(1);
         }
-        .close-btn {
-            background: transparent; border: 1px solid rgba(255,255,255,0.2);
-            color: var(--fg); width: 44px; height: 44px; border-radius: 50%;
+
+        .modal-glass::-webkit-scrollbar { width: 6px; }
+        .modal-glass::-webkit-scrollbar-track { background: transparent; }
+        .modal-glass::-webkit-scrollbar-thumb { background: var(--accent-violet); border-radius: 10px; }
+
+        .modal-title {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            color: var(--accent-cyan);
+            margin-bottom: 2rem;
+            text-shadow: 4px 4px 0px var(--accent-violet);
+            line-height: 1;
+        }
+
+        .modal-close {
+            position: absolute; top: 2rem; right: 2rem;
+            background: transparent; border: 2px solid rgba(255,255,255,0.2);
+            color: var(--fg); width: 48px; height: 48px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             font-size: 1.2rem; transition: all 0.3s;
-            pointer-events: auto; /* Allow interaction without custom cursor override */
+            pointer-events: auto;
         }
-        .close-btn:hover {
-            background: var(--fg); color: var(--bg); border-color: var(--fg);
-            transform: rotate(90deg);
+        .modal-close:hover {
+            background: var(--accent-violet); color: #000; border-color: var(--accent-violet);
+            transform: rotate(90deg) scale(1.1);
         }
-        #viewer-frame {
-            flex: 1; width: 100%; border: none; background: #000;
-            opacity: 0; transform: translateY(40px);
-            transition: opacity 0.8s var(--ease-surgical), transform 0.8s var(--ease-surgical);
-            transition-delay: 0.2s;
+
+        .modal-actions {
+            display: flex; flex-direction: column; gap: 1rem;
+            margin-bottom: 2rem;
         }
-        #artifact-viewer.active #viewer-frame {
-            opacity: 1; transform: translateY(0);
+
+        .modal-divider {
+            text-align: center; color: rgba(255,255,255,0.4);
+            font-size: 0.85rem; letter-spacing: 0.2em;
+            margin: 2rem 0; position: relative;
+        }
+        .modal-divider::before, .modal-divider::after {
+            content: ''; position: absolute; top: 50%; width: 25%; height: 1px;
+            background: rgba(255,255,255,0.1);
+        }
+        .modal-divider::before { left: 0; }
+        .modal-divider::after { right: 0; }
+
+        .intake-form {
+            display: flex; flex-direction: column; gap: 1.5rem;
+        }
+
+        .input-group { position: relative; width: 100%; }
+        
+        .intake-form input, .intake-form textarea {
+            width: 100%;
+            background: rgba(0,0,0,0.5);
+            border: none;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+            padding: 1.2rem 1.5rem;
+            color: var(--fg);
+            font-family: 'Space Mono', monospace;
+            font-size: 1rem; /* 16px prevents iOS zoom */
+            transition: all 0.3s;
+            border-radius: 8px 8px 0 0;
+            outline: none;
+            cursor: text;
+        }
+        .intake-form textarea {
+            min-height: 120px; resize: vertical;
+        }
+        .intake-form input:focus, .intake-form textarea:focus {
+            background: rgba(212, 255, 0, 0.05);
+            border-bottom-color: var(--accent-cyan);
+            box-shadow: 0 10px 30px -10px rgba(212, 255, 0, 0.2);
+        }
+        .intake-form input::placeholder, .intake-form textarea::placeholder {
+            color: rgba(255,255,255,0.3);
+            letter-spacing: 0.05em;
         }
 
         /* --- TYPOGRAPHY & LAYOUT --- */
@@ -156,50 +274,120 @@
             flex-direction: column;
             justify-content: center;
             padding: 15vh 0;
-            align-items: flex-start; /* Enables asymmetric layout anchoring */
+            align-items: flex-start;
         }
 
-        .hero-title {
-            font-family: 'Permanent Marker', cursive;
-            font-size: clamp(5rem, 15vw, 16rem);
-            font-weight: 400;
-            line-height: 0.85;
-            letter-spacing: 0.02em;
-            color: var(--accent-cyan);
-            mix-blend-mode: normal;
-            margin-bottom: 2rem;
+        /* --- FX TYPOGRAPHY BLOCK --- */
+        .hero-title-group {
             position: relative;
-            z-index: 5;
+            margin-bottom: 2rem;
             transform: rotate(-3deg);
             margin-left: -2vw;
-            text-shadow: 6px 6px 0px var(--accent-violet);
+            display: flex;
+            flex-direction: column;
+            z-index: 5;
+            align-items: flex-start;
+        }
+
+        .title-bndr {
+            display: block;
+            font-family: 'Permanent Marker', cursive;
+            font-size: clamp(6rem, 16vw, 18rem);
+            font-weight: 400;
+            line-height: 0.8;
+            letter-spacing: 0.02em;
+            color: var(--accent-cyan);
+            position: relative;
+            z-index: 6;
+            text-shadow: 10px 10px 0px var(--accent-violet), 15px 15px 30px rgba(0,0,0,0.9);
+            animation: breathFX 4s ease-in-out infinite alternate;
+        }
+
+        .title-llc {
+            display: block;
+            margin-top: -1.5rem;
+            margin-left: 1.5rem;
+            font-family: 'Permanent Marker', cursive; 
+            font-size: clamp(4rem, 10vw, 12rem);
+            color: var(--accent-cyan);
+            font-weight: 400;
+            z-index: 7;
+            transform: rotate(1.5deg); 
+            transform-origin: left center;
+            letter-spacing: 0.02em;
+            text-shadow: 8px 8px 0px var(--accent-violet), 10px 10px 20px rgba(0,0,0,0.9);
+            pointer-events: none;
+        }
+
+        @keyframes breathFX {
+            0% { transform: scale(1) translate(0, 0) rotate(0deg); filter: brightness(1); }
+            100% { transform: scale(1.02) translate(6px, -3px) rotate(-1deg); filter: brightness(1.2); }
         }
 
         .hero-subtitle {
-            font-family: 'Space Mono', monospace;
-            font-size: clamp(1rem, 1.5vw, 1.2rem);
-            color: rgba(255,255,255,0.8);
-            max-width: 500px;
-            margin-top: 4rem;
+            font-size: clamp(1.1rem, 1.8vw, 1.4rem);
+            color: rgba(255,255,255,0.95);
+            max-width: 600px;
+            margin-top: 3rem;
             line-height: 1.6;
-            margin-left: 20vw; /* Asymmetric push */
+            margin-left: max(5vw, 100px);
             border-left: 4px solid var(--accent-violet);
-            padding-left: 2rem;
+            padding-left: 2.5rem;
             transform: rotate(1deg);
+            background: rgba(0,0,0,0.4);
+            padding-block: 1rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 20px 20px 50px rgba(0,0,0,0.8);
         }
 
         .label-tag {
-            font-size: 0.75rem; color: var(--accent-cyan);
-            border: 1px solid rgba(0, 240, 255, 0.3);
-            padding: 0.4rem 1rem; border-radius: 20px;
+            font-size: 0.75rem; color: #000; background: var(--accent-cyan);
+            padding: 0.4rem 1rem; border-radius: 4px;
             display: inline-block; margin-bottom: 2rem;
-            backdrop-filter: blur(4px);
+            font-weight: bold; box-shadow: 4px 4px 0px var(--accent-violet);
+        }
+
+        /* --- BUTTON SYSTEM --- */
+        .pill {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 1.4rem 3rem; 
+            background: rgba(0,0,0,0.6);
+            border: 3px solid var(--accent-cyan); 
+            border-radius: 12px; 
+            color: var(--fg); text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.19,1,0.22,1);
+            will-change: transform; font-size: 1.2rem; letter-spacing: 0.08em;
+            font-weight: bold; text-transform: uppercase;
+            box-shadow: 6px 6px 0px var(--accent-violet);
+            font-family: 'Space Mono', monospace;
+            cursor: pointer;
+            width: 100%;
+            backdrop-filter: blur(5px);
+        }
+
+        .pill:hover {
+            background: var(--accent-cyan); 
+            color: #000;
+            border-color: var(--accent-cyan);
+            transform: translate(-4px, -4px);
+            box-shadow: 10px 10px 0px var(--accent-violet), 0 0 30px rgba(212,255,0,0.4);
+        }
+        
+        .pill.call-btn {
+            border-color: var(--accent-violet);
+            box-shadow: 6px 6px 0px var(--accent-cyan);
+        }
+        .pill.call-btn:hover {
+            background: var(--accent-violet);
+            border-color: var(--accent-violet);
+            color: #fff;
+            box-shadow: 10px 10px 0px var(--accent-cyan), 0 0 30px rgba(255,0,85,0.4);
         }
 
         .glass-panel {
-            background: var(--glass);
+            background: rgba(10, 10, 12, 0.65);
             border: 2px solid var(--glass-border);
-            border-radius: 0px; /* Removed soft curves for raw street style */
+            border-radius: 24px;
             padding: 3rem;
             backdrop-filter: blur(30px) saturate(150%);
             box-shadow: 12px 12px 0px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05);
@@ -207,28 +395,25 @@
 
         .project-list {
             display: flex; flex-direction: column; gap: 3rem;
-            margin-top: 6rem;
-            border-top: none;
-            padding-top: 2rem;
-            width: 100%;
+            margin-top: 6rem; width: 100%;
         }
 
         .project-row {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 2rem 3rem;
+            padding: 2.5rem 3.5rem;
             background: rgba(255,255,255,0.02);
-            border: 2px solid transparent;
-            border-radius: 0;
+            border: 2px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
             text-decoration: none; color: var(--fg);
             position: relative; overflow: hidden;
             transition: all 0.4s var(--ease-surgical);
             width: 85%;
+            backdrop-filter: blur(10px);
         }
 
-        /* Asymmetric Staggering */
         .project-row:nth-child(odd) {
             align-self: flex-start;
-            border-left: 4px solid var(--accent-cyan);
+            border-left: 6px solid var(--accent-cyan);
             transform: rotate(-1deg);
         }
         
@@ -236,198 +421,169 @@
             align-self: flex-end;
             flex-direction: row-reverse;
             text-align: right;
-            border-right: 4px solid var(--accent-violet);
+            border-right: 6px solid var(--accent-violet);
             transform: rotate(1deg);
         }
 
-        .project-row::before {
-            content: ''; position: absolute; inset: 0;
-            background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.05), transparent);
-            transform: translateX(-100%); transition: transform 0.8s;
-            pointer-events: none;
-        }
-
         .project-row:hover {
-            background: rgba(255,255,255,0.03);
-            border-color: rgba(255,255,255,0.1);
-            transform: translateX(20px);
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.2);
+            transform: translateX(20px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            z-index: 2;
         }
 
-        .project-row:hover::before { transform: translateX(100%); }
+        .project-row:nth-child(even):hover { transform: translateX(-20px) scale(1.02); }
 
         .project-row h3 { 
             font-family: 'Permanent Marker', cursive; 
             font-size: clamp(2.5rem, 5vw, 5rem); 
             font-weight: 400; 
             letter-spacing: 0.02em; 
-            pointer-events: none; 
             color: var(--fg);
             text-transform: uppercase;
-            transition: color 0.3s;
+            transition: color 0.3s, text-shadow 0.3s;
         }
-        .project-row:nth-child(odd):hover h3 { color: var(--accent-cyan); }
-        .project-row:nth-child(even):hover h3 { color: var(--accent-violet); }
+        .project-row:nth-child(odd):hover h3 { color: var(--accent-cyan); text-shadow: 4px 4px 0px var(--accent-violet); }
+        .project-row:nth-child(even):hover h3 { color: var(--accent-violet); text-shadow: 4px 4px 0px var(--accent-cyan); }
 
-        .project-row .meta { color: rgba(255,255,255,0.5); font-size: 1.1rem; pointer-events: none; font-weight: bold; }
         .project-row .arrow { 
-            width: 60px; height: 60px; border-radius: 0;
+            width: 70px; height: 70px;
             border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem;
-            transition: background 0.4s, border-color 0.4s, transform 0.4s; pointer-events: none;
+            font-size: 1.8rem;
+            transition: background 0.4s, border-color 0.4s, transform 0.4s, color 0.4s;
         }
-        .project-row:nth-child(even) .arrow { transform: rotate(-180deg); }
-        .project-row:nth-child(even):hover .arrow { transform: rotate(-135deg); }
-        .project-row:nth-child(odd):hover .arrow { transform: rotate(45deg); }
-
         .project-row:hover .arrow {
-            background: var(--fg); border-color: var(--fg); color: var(--bg);
+            background: var(--fg); color: #000; transform: rotate(45deg);
         }
 
-        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
-        @media (max-width: 900px) { .grid-layout { grid-template-columns: 1fr; } .project-row { width: 100%; } }
-        .social-matrix { display: flex; flex-wrap: wrap; gap: 1rem; }
-        .mag-wrap { position: relative; display: inline-block; }
-        
-        .pill {
-            display: inline-flex; align-items: center; justify-content: center;
-            padding: 1rem 2rem; background: rgba(255,255,255,0.02);
-            border: 2px solid rgba(255,255,255,0.1); border-radius: 0; 
-            color: var(--fg); text-decoration: none;
-            transition: all 0.3s;
-            will-change: transform; font-size: 1rem; letter-spacing: 0.05em;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .pill:hover {
-            background: var(--accent-cyan); 
-            border-color: var(--accent-cyan);
-            color: #000;
-            transform: scale(1.05) rotate(-3deg);
-            box-shadow: 6px 6px 0px var(--accent-violet);
-        }
+        .mag-wrap { position: relative; display: inline-block; width: 100%; max-width: 400px; }
 
         footer { padding: 8rem 0 4rem; border-top: 4px solid var(--accent-cyan); margin-top: 10vh; }
-        .privacy-box {
-            background: rgba(0,0,0,0.6); border-left: 2px solid var(--accent-violet);
-            padding: 2rem; margin-top: 2rem; font-size: 0.85rem; color: rgba(255,255,255,0.5);
-            border-radius: 0 16px 16px 0; line-height: 1.6;
+        
+        @media (max-width: 768px) {
+            .hero-subtitle { margin-left: 0; margin-top: 2rem; }
+            .project-row { width: 100%; flex-direction: column !important; align-items: flex-start; padding: 2rem; gap: 1rem; text-align: left !important; transform: none !important; }
+            .project-row:nth-child(even) { border-right: none; border-left: 6px solid var(--accent-violet); }
+            .project-row:hover { transform: translateY(-5px) !important; }
+            footer > div { grid-template-columns: 1fr !important; }
+            .modal-glass { padding: 2rem; }
         }
-        .contact-stack p { margin-bottom: 0.5rem; color: rgba(255,255,255,0.7); }
-
     </style>
 </head>
 <body>
 
-    <!-- CORE GPU ENGINE -->
     <canvas id="glcanvas"></canvas>
     <div class="noise-layer"></div>
     <div class="vignette"></div>
 
-    <!-- KINETIC CURSOR -->
+    <div class="io-container">
+        <span class="io-label mono">BEATS</span>
+        <button id="io-switch" class="io-switch" aria-pressed="false" data-hover></button>
+    </div>
+
     <div id="cursor-dot"></div>
     <div id="cursor-ring"></div>
 
-    <!-- ZERO-RELOAD ARTIFACT ROUTER -->
-    <div id="artifact-viewer">
-        <div class="viewer-header">
-            <div class="viewer-title">Active Stream: <span id="viewer-target-name">None</span></div>
-            <button class="close-btn" id="viewer-close" data-hover>✕</button>
+    <div id="contact-modal">
+        <div class="modal-glass">
+            <button class="modal-close" id="btn-close-modal" data-hover>✕</button>
+            <h2 class="modal-title mono">CONTACT</h2>
+            
+            <div class="modal-actions">
+                <a href="tel:7179197731" class="pill call-btn" data-hover>Call Me</a>
+            </div>
+            
+            <div class="modal-divider mono">OR WRITE ME</div>
+            
+            <form action="https://formsubmit.co/bndr.labs@gmail.com" method="POST" class="intake-form" id="main-intake-form">
+                <input type="hidden" name="_subject" value="New Project Intake from Nexus (Cosmic v2.5)">
+                <input type="hidden" name="_captcha" value="false">
+                <input type="hidden" name="_template" value="table">
+                
+                <div class="input-group">
+                    <input type="text" name="name" required placeholder="IDENTIFIER (NAME)">
+                </div>
+                <div class="input-group">
+                    <input type="email" name="email" required placeholder="COMMS (EMAIL)">
+                </div>
+                <div class="input-group">
+                    <textarea name="message" required placeholder="MISSION PARAMETERS..."></textarea>
+                </div>
+                <button type="submit" class="pill submit-btn" data-hover>SEND IT</button>
+            </form>
         </div>
-        <iframe id="viewer-frame" src=""></iframe>
     </div>
 
-    <!-- SMOOTH SCROLL ARCHITECTURE -->
     <div id="smooth-wrapper">
         <div class="container">
             
             <section id="hero">
-                <div class="label-tag mono">Identity Infrastructure™ Validated</div>
-                <h1 class="hero-title">BNDR LLC</h1>
+                <div class="label-tag mono">BNDR 30-day Unlimited™: 30 days. Endless Revisions + Truly Custom Marketing Materials + More On Demand. </div>
+                
+                <h1 class="hero-title-group">
+                    <span class="title-bndr">BNDR</span>
+                    <span class="title-llc">LLC</span>
+                </h1>
+                
                 <p class="hero-subtitle">
-                    Forensic product execution. Architecture forged for the spatial computing future. 
-                    Zero boilerplate. Maximum lethality.
+                    Yep, feel that? That's what it feels like when you finally have your answer. I help you build your website / brand to connect to your audience effectively. Utilizing custom-built systems designed specifically to spot gaps and blind-spots that root out major and subtle bottlenecks, give's KPI on how to improve, and keeps you aware of the most important assets, highest risks, and missed opportunies that set you apart from your competetition when it comes to 'knowing your company. Creative, Mobile-friendly websites built for function and style and those who refuse to blend in.
                 </p>
-                <div class="social-matrix" style="margin-top: 3rem;">
-                    <div class="mag-wrap"><a href="mailto:bndr.labs@gmail.com" class="pill mag-target" data-hover>bndr.labs@gmail.com</a></div>
-                    <div class="mag-wrap"><a href="tel:7179197731" class="pill mag-target" data-hover>717-919-7731</a></div>
+                <div class="social-matrix" style="margin-top: 4rem; margin-left: max(5vw, 100px);">
+                    <div class="mag-wrap">
+                        <button id="btn-trigger-modal" class="pill mag-target" data-hover>Talk To Me</button>
+                    </div>
                 </div>
             </section>
 
             <section id="work">
-                <div class="label-tag mono">Execution Log</div>
-                <h2 style="font-size: 2rem; font-weight: 200;">Deployed Artifacts</h2>
+                <div class="label-tag mono">In Progress</div>
+                <h2 style="font-family: 'Permanent Marker', cursive; font-size: 4rem; color: var(--accent-cyan); transform: rotate(-2deg); margin-bottom: 2rem;">Deployed Artifacts</h2>
                 
-                <!-- ROUTER TARGETS -->
                 <div class="project-list">
-                    <a href="https://bndrbots.github.io/resourcecite/#home" class="project-row artifact-link" data-title="ResourceCite" data-hover>
-                        <div><span class="meta mono">001</span><h3>ResourceCite</h3></div>
+                    <a href="https://bndrbots.github.io/resourcecite/#home" target="_blank" class="project-row" data-hover>
+                        <div><span class="mono" style="color: rgba(255,255,255,0.5);">001</span><h3>ResourceCite</h3></div>
                         <div class="arrow mono">↗</div>
                     </a>
-                    <a href="https://bndrbots.github.io/crystal_love/" class="project-row artifact-link" data-title="Crystal Love" data-hover>
-                        <div><span class="meta mono">002</span><h3>Crystal Love</h3></div>
+                    <a href="https://bndrbots.github.io/crystal_love/" target="_blank" class="project-row" data-hover>
+                        <div><span class="mono" style="color: rgba(255,255,255,0.5);">002</span><h3>Crystal Love</h3></div>
                         <div class="arrow mono">↗</div>
                     </a>
-                    <a href="https://bndrbots.github.io/sport_formal/" class="project-row artifact-link" data-title="Sport Formal" data-hover>
-                        <div><span class="meta mono">003</span><h3>Sport Formal</h3></div>
+                    <a href="https://bndrbots.github.io/sport_formal/" target="_blank" class="project-row" data-hover>
+                        <div><span class="mono" style="color: rgba(255,255,255,0.5);">003</span><h3>Sport Formal</h3></div>
                         <div class="arrow mono">↗</div>
                     </a>
-                    <a href="https://bndrbots.github.io/CRYSTAL-GATE/" class="project-row artifact-link" data-title="Crystal Gate" data-hover>
-                        <div><span class="meta mono">004</span><h3>Crystal Gate</h3></div>
+                    <a href="https://bndrbots.github.io/CRYSTAL-GATE/" target="_blank" class="project-row" data-hover>
+                        <div><span class="mono" style="color: rgba(255,255,255,0.5);">004</span><h3>Crystal Gate</h3></div>
                         <div class="arrow mono">↗</div>
                     </a>
-                    <a href="https://bndrbots.github.io/immersion/" class="project-row artifact-link" data-title="Immersion" data-hover>
-                        <div><span class="meta mono">005</span><h3>Immersion</h3></div>
-                        <div class="arrow mono">↗</div>
-                    </a>
-                    <a href="https://bndrbots.github.io/white_carousel/" class="project-row artifact-link" data-title="White Carousel" data-hover>
-                        <div><span class="meta mono">006</span><h3>White Carousel</h3></div>
-                        <div class="arrow mono">↗</div>
-                    </a>
-                    <a href="https://bndrbots.github.io/ShadowGraffiti/" class="project-row artifact-link" data-title="Shadow Graffiti" data-hover>
-                        <div><span class="meta mono">007</span><h3>Shadow Graffiti</h3></div>
-                        <div class="arrow mono">↗</div>
-                    </a>
-                    <a href="https://bndrbots.github.io/BNDRVoice/" class="project-row artifact-link" data-title="BNDR Voice" data-hover>
-                        <div><span class="meta mono">008</span><h3>BNDR Voice</h3></div>
-                        <div class="arrow mono">↗</div>
-                    </a>
-                    <a href="https://bndrbots.github.io/apexsound" class="project-row artifact-link" data-title="Apex Sound" data-hover>
-                        <div><span class="meta mono">009</span><h3>Apex Sound</h3></div>
+                    <a href="https://bndrbots.github.io/immersion/" target="_blank" class="project-row" data-hover>
+                        <div><span class="mono" style="color: rgba(255,255,255,0.5);">005</span><h3>Immersion</h3></div>
                         <div class="arrow mono">↗</div>
                     </a>
                 </div>
             </section>
 
             <footer>
-                <div class="grid-layout">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem;">
                     <div>
-                        <div class="label-tag mono" style="margin-bottom: 1rem;">Network Grid</div>
-                        <div class="social-matrix">
-                            <div class="mag-wrap"><a href="https://www.linkedin.com/in/bndrtech/" target="_blank" class="pill mag-target" data-hover>LinkedIn</a></div>
-                            <div class="mag-wrap"><a href="https://github.com/BNDRBOTS" target="_blank" class="pill mag-target" data-hover>GitHub</a></div>
-                            <div class="mag-wrap"><a href="https://substack.com/@bndrllc" target="_blank" class="pill mag-target" data-hover>Substack</a></div>
-                            <div class="mag-wrap"><a href="https://www.instagram.com/bndrllc" target="_blank" class="pill mag-target" data-hover>Instagram</a></div>
-                            <div class="mag-wrap"><a href="https://www.facebook.com/BNDRLLC" target="_blank" class="pill mag-target" data-hover>Facebook</a></div>
-                            <div class="mag-wrap"><a href="https://promptbase.com/profile/bndrllc" target="_blank" class="pill mag-target" data-hover>PromptBase</a></div>
-                            <div class="mag-wrap"><a href="https://bndrllc.gumroad.com/" target="_blank" class="pill mag-target" data-hover>Gumroad</a></div>
-                            <div class="mag-wrap"><a href="https://buymeacoffee.com/bndr" target="_blank" class="pill mag-target" data-hover>BuyMeACoffee</a></div>
+                        <div class="label-tag mono" style="margin-bottom: 2rem;">Socials + More</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+                            <a href="https://www.linkedin.com/in/bndrtech/" target="_blank" class="pill" style="width:auto; padding: 1rem 1.5rem; font-size:0.9rem;" data-hover>LinkedIn</a>
+                            <a href="https://github.com/BNDRBOTS" target="_blank" class="pill" style="width:auto; padding: 1rem 1.5rem; font-size:0.9rem;" data-hover>GitHub</a>
+                            <a href="https://substack.com/@bndrllc" target="_blank" class="pill" style="width:auto; padding: 1rem 1.5rem; font-size:0.9rem;" data-hover>Substack</a>
+                            <a href="https://www.instagram.com/bndrllc" target="_blank" class="pill" style="width:auto; padding: 1rem 1.5rem; font-size:0.9rem;" data-hover>Instagram</a>
                         </div>
                     </div>
-
                     <div class="glass-panel">
-                        <div class="contact-stack mono" style="font-size: 0.9rem;">
-                            <p style="color: var(--fg); font-weight: bold; margin-bottom: 1rem;">HQ Coordinates</p>
+                        <div class="mono" style="font-size: 0.95rem; line-height: 1.8;">
+                            <p style="color: var(--accent-cyan); font-weight: bold; margin-bottom: 1rem; font-size: 1.2rem;">HQ Coordinates</p>
                             <p>BNDR LLC</p>
                             <p>1896 East Innovation Park Drive, STE 100</p>
                             <p>Oro Valley, AZ 85755</p>
-                            <p style="margin-top: 2rem;">&copy; 2026 BNDR LLC. All rights reserved.</p>
-                        </div>
-                        
-                        <div class="privacy-box">
-                            <strong style="color: var(--fg);">Notice at Collection</strong><br><br>
-                            BNDR LLC collects the personal information you submit here — such as your name, business name, email address, phone number, billing details, message content, IP address, browser/device information, and related usage data — to respond to your inquiry, provide requested services, process payments, calculate taxes, maintain security, and comply with legal obligations. We retain contact inquiries for up to 1 year, IP addresses and server logs for up to 90 days.
+                            <p style="margin-top: 2rem; color: rgba(255,255,255,0.5);">&copy; 2026 BNDR LLC. All rights reserved.</p>
                         </div>
                     </div>
                 </div>
@@ -436,9 +592,7 @@
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- GPU SHADERS: SPATIAL SDF RAYMARCHING       -->
-    <!-- ========================================== -->
+    <!-- GPU SHADERS: HYPER-DETAILED MID-SPACE -->
     <script type="x-shader/x-vertex" id="vs">
         attribute vec2 position;
         void main() { gl_Position = vec4(position, 0.0, 1.0); }
@@ -448,10 +602,12 @@
         uniform vec2 u_res;
         uniform float u_time;
         uniform vec2 u_mouse;
-        uniform vec2 u_gyro; // Hooked to hardware orientation
+        uniform vec2 u_gyro; 
         uniform float u_scroll;
         uniform float u_velo;
-        uniform float u_router_depth; // Controls z-push during spatial transition
+        
+        uniform float u_audio_low;
+        uniform float u_audio_high;
 
         vec3 hash(vec3 p) {
             p = vec3(dot(p,vec3(127.1,311.7, 74.7)),
@@ -472,6 +628,15 @@
                            mix(dot(hash(i+vec3(0,1,1)),f-vec3(0,1,1)), 
                                dot(hash(i+vec3(1,1,1)),f-vec3(1,1,1)),u.x),u.y),u.z);
         }
+        
+        float fbm(vec3 p) {
+            float f = 0.0; float amp = 0.5;
+            for(int i=0; i<4; i++) {
+                f += noise(p) * amp;
+                p *= 2.01; amp *= 0.5;
+            }
+            return f;
+        }
 
         mat2 rot(float a) {
             float s = sin(a), c = cos(a);
@@ -479,20 +644,15 @@
         }
 
         float map(vec3 p) {
-            // Merge Mouse & Gyro inputs seamlessly
             vec2 inputVector = mix(u_mouse, u_gyro, step(0.1, length(u_gyro)));
-            
             p.xz *= rot(u_time * 0.1 + inputVector.x * 2.0);
             p.yz *= rot(u_time * 0.05 + u_scroll * 0.002 - inputVector.y * 2.0);
-
-            // Volumetric scaling pushes structure away during transition
-            float d1 = length(p) - (1.5 - u_router_depth * 0.5); 
             
-            float n = noise(p * 2.0 + u_time * 0.5) * 0.5;
-            n += noise(p * 4.0 - u_time * 0.2) * 0.25;
-            float veloSpike = u_velo * 0.02 * noise(p * 8.0);
+            float core = length(p) - (1.8 + u_audio_low * 0.05); 
+            float n = fbm(p * 1.5 + u_time * 0.2) * (1.2 + u_audio_low * 0.15);
+            float veloSpike = u_velo * 0.01 * noise(p * 5.0);
             
-            return d1 + n + veloSpike;
+            return core + n + veloSpike;
         }
 
         vec3 calcNormal(vec3 p) {
@@ -503,23 +663,39 @@
                 map(p + e.yyx) - map(p - e.yyx)
             ));
         }
+        
+        float stars(vec3 rd) {
+            vec3 p = rd * 200.0;
+            float s = noise(p);
+            float s2 = noise(p * 2.0 + 100.0);
+            return pow(max(0.0, s), 45.0) * 1.5 + pow(max(0.0, s2), 60.0) * 2.0;
+        }
 
         void main() {
             vec2 uv = (gl_FragCoord.xy - 0.5 * u_res.xy) / u_res.y;
-            vec3 ro = vec3(0.0, 0.0, 4.0 + u_router_depth * 2.0); // Camera pulls back
+            vec2 inputVector = mix(u_mouse, u_gyro, step(0.1, length(u_gyro)));
+            
+            vec3 ro = vec3(inputVector.x * 0.5, inputVector.y * -0.5, 5.0); 
             vec3 rd = normalize(vec3(uv, -1.0));
+            rd.xy *= rot(inputVector.x * 0.1);
+            rd.xz *= rot(-inputVector.x * 0.2);
+            rd.yz *= rot(inputVector.y * 0.2);
 
             float t = 0.0;
-            float max_t = 10.0 + u_router_depth * 2.0;
+            float max_t = 15.0;
             vec3 p;
-            for(int i = 0; i < 64; i++) {
+            
+            for(int i = 0; i < 70; i++) {
                 p = ro + rd * t;
                 float d = map(p);
                 if(d < 0.001 || t > max_t) break;
-                t += d * 0.7; 
+                t += d * 0.6; 
             }
+            
+            vec3 starColor = vec3(0.8, 0.9, 1.0) * stars(rd);
+            vec3 nebulaBg = vec3(0.02, 0.0, 0.05) * fbm(rd * 3.0 + u_time * 0.05);
+            vec3 col = vec3(0.002, 0.001, 0.005) + starColor + nebulaBg;
 
-            vec3 col = vec3(0.0);
             if(t < max_t) {
                 vec3 n = calcNormal(p);
                 vec3 v = -rd;
@@ -529,202 +705,488 @@
                 float dif = max(dot(n, l1), 0.0);
                 float fresnel = pow(1.0 - max(dot(n, v), 0.0), 3.0);
                 
-                vec3 baseColor = vec3(0.02, 0.03, 0.05);
-                // Intensify colors during spatial transition
-                vec3 cyanGlow = vec3(0.0, 0.94, 1.0) * fresnel * (1.5 + u_router_depth);
-                vec3 violetGlow = vec3(0.54, 0.17, 0.89) * max(dot(n, l2), 0.0) * (1.0 + u_router_depth);
+                vec3 baseColor = vec3(0.01, 0.0, 0.02);
+                vec3 cyanGlow = vec3(0.8, 1.0, 0.0) * fresnel * 2.5; 
+                vec3 violetGlow = vec3(1.0, 0.0, 0.33) * max(dot(n, l2), 0.0) * 2.0; 
                 
-                col = baseColor * dif + cyanGlow + violetGlow;
-                vec3 h = normalize(l1 + v);
-                float spec = pow(max(dot(n, h), 0.0), 32.0);
-                col += spec * vec3(1.0);
+                vec3 objCol = baseColor * dif + cyanGlow + violetGlow;
+                
+                float spec = pow(max(dot(n, normalize(l1 + v)), 0.0), 32.0);
+                objCol += spec * vec3(1.0);
+                
+                // Micro electro-pulses matching high frequencies (snares/hats)
+                float microCracks = smoothstep(0.04, 0.0, abs(noise(p * 8.0 - u_time * 3.0)));
+                vec3 electroColor = vec3(0.6, 1.0, 0.9) * microCracks * u_audio_high * 1.8;
+                objCol += electroColor * fresnel; // Masked to edges to prevent blowout
+                
+                col = mix(objCol, col, 1.0 - exp(-0.05 * t * t));
             }
-
-            col = mix(col, vec3(0.0), 1.0 - exp(-0.1 * t * t));
+            
             gl_FragColor = vec4(pow(col, vec3(1.0/2.2)), 1.0); 
         }
     </script>
 
-    <!-- ========================================== -->
-    <!-- SPATIAL ENGINE LOGIC                       -->
-    <!-- ========================================== -->
+    <!-- SURGICAL AUDIO SYNTHESIS: ANALOG MODELING -->
     <script>
+        class AudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.isPlaying = false;
+                this.tempo = 85; 
+                this.nextNoteTime = 0.0;
+                this.current16thNote = 0;
+                this.totalSteps = 0;
+                this.timerID = null;
+                this.noiseBuffer = null;
+                this.pulse = { low: 0, high: 0 }; // Deterministic visual bridging
+                
+                // Persistent Bass Synth Nodes
+                this.bassOscSub = null;
+                this.bassOscMid = null;
+                this.bassOscHigh = null;
+                this.bassFilter = null;
+                this.bassDist = null;
+                this.bassGain = null;
+            }
+
+            // Custom non-linear distortion curve (Tanh mathematical approximation)
+            // This adds harmonic warmth to clinical digital oscillators, avoiding the "MIDI" sound.
+            makeDistortionCurve(amount) {
+                let k = typeof amount === 'number' ? amount : 50;
+                let n_samples = 44100;
+                let curve = new Float32Array(n_samples);
+                let deg = Math.PI / 180;
+                for (let i = 0; i < n_samples; ++i) {
+                    let x = i * 2 / n_samples - 1;
+                    curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+                }
+                return curve;
+            }
+
+            init() {
+                if(!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    this.masterGain = this.ctx.createGain();
+                    this.masterGain.gain.value = 0.85;
+
+                    // Generate White Noise Buffer for premium analog hats/snares
+                    const bufferSize = this.ctx.sampleRate * 2.0;
+                    this.noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const output = this.noiseBuffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+
+                    // Non-Linear Saturation (Analog Warmth)
+                    this.waveshaper = this.ctx.createWaveShaper();
+                    this.waveshaper.curve = this.makeDistortionCurve(15);
+                    this.waveshaper.oversample = '4x';
+                    
+                    // Master Bus Compression (Glue)
+                    this.compressor = this.ctx.createDynamicsCompressor();
+                    this.compressor.threshold.value = -24;
+                    this.compressor.knee.value = 12;
+                    this.compressor.ratio.value = 6;
+                    this.compressor.attack.value = 0.003;
+                    this.compressor.release.value = 0.25;
+
+                    // EQ - Rolling off muddy mids, lifting extreme lows
+                    this.masterEQ = this.ctx.createBiquadFilter();
+                    this.masterEQ.type = 'lowshelf';
+                    this.masterEQ.frequency.value = 80;
+                    this.masterEQ.gain.value = 4; // Boost the deep cinematic lows
+
+                    // Signal Flow: Gain -> Saturation -> EQ -> Compression -> Out
+                    this.masterGain.connect(this.waveshaper);
+                    this.waveshaper.connect(this.masterEQ);
+                    this.masterEQ.connect(this.compressor);
+                    this.compressor.connect(this.ctx.destination);
+
+                    // --- PERSISTENT SEAMLESS BASS SYNTH ---
+                    // Three stacked octaves blending into a massive, single drone
+                    this.bassOscSub = this.ctx.createOscillator();
+                    this.bassOscSub.type = 'sine';
+                    this.bassOscMid = this.ctx.createOscillator();
+                    this.bassOscMid.type = 'triangle';
+                    this.bassOscHigh = this.ctx.createOscillator();
+                    this.bassOscHigh.type = 'sine';
+
+                    this.bassFilter = this.ctx.createBiquadFilter();
+                    this.bassFilter.type = 'lowpass';
+                    this.bassFilter.frequency.value = 90;
+
+                    this.bassGain = this.ctx.createGain();
+                    this.bassGain.gain.value = 0.001;
+
+                    this.bassDist = this.ctx.createWaveShaper();
+                    this.bassDist.curve = this.makeDistortionCurve(10);
+
+                    this.bassOscSub.connect(this.bassFilter);
+                    this.bassOscMid.connect(this.bassFilter);
+                    this.bassOscHigh.connect(this.bassFilter);
+                    this.bassFilter.connect(this.bassDist);
+                    this.bassDist.connect(this.bassGain);
+                    this.bassGain.connect(this.masterGain);
+
+                    this.bassOscSub.start();
+                    this.bassOscMid.start();
+                    this.bassOscHigh.start();
+                    
+                    // Initial target lock
+                    this.bassOscSub.frequency.value = 58.27 / 2;
+                    this.bassOscMid.frequency.value = 58.27;
+                    this.bassOscHigh.frequency.value = 58.27 * 2;
+                }
+                if(this.ctx.state === 'suspended') this.ctx.resume();
+                this.isPlaying = true;
+                this.nextNoteTime = this.ctx.currentTime + 0.1;
+                
+                // Force sync to downbeat
+                this.current16thNote = 0;
+                this.totalSteps = 0;
+                
+                this.scheduler();
+            }
+
+            stop() {
+                this.isPlaying = false;
+                clearTimeout(this.timerID);
+                if (this.bassGain) {
+                    this.bassGain.gain.setTargetAtTime(0.001, this.ctx.currentTime, 0.1);
+                }
+            }
+
+            nextNote() {
+                const secondsPerBeat = 60.0 / this.tempo;
+                this.nextNoteTime += 0.25 * secondsPerBeat; 
+                this.current16thNote++;
+                this.totalSteps++;
+                if (this.current16thNote === 16) this.current16thNote = 0;
+            }
+
+            // The Cinematic Thud (Physics-modeled pitch dive)
+            playKick(time) {
+                this.pulse.low = 1.0; // Trigger visual pulse
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = 'sine';
+                
+                // Pitch Envelope: 150Hz -> 30Hz dive creates the physical "smack"
+                osc.frequency.setValueAtTime(150, time);
+                osc.frequency.exponentialRampToValueAtTime(30, time + 0.08);
+                
+                // Amp Envelope: Punchy decay
+                gain.gain.setValueAtTime(1.0, time);
+                gain.gain.setTargetAtTime(0.001, time + 0.02, 0.1); 
+                
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                
+                osc.start(time); 
+                osc.stop(time + 0.5);
+            }
+
+            // Premium Staccato Snare (Modeled wire snap + resonant body)
+            playSnare(time) {
+                this.pulse.high = 1.0; // Trigger high pulse
+                // Crisp analog noise snap (The Wires)
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = this.noiseBuffer;
+                const noiseFilter = this.ctx.createBiquadFilter();
+                noiseFilter.type = 'bandpass';
+                noiseFilter.frequency.value = 4500;
+                noiseFilter.Q.value = 0.8;
+                
+                const noiseGain = this.ctx.createGain();
+                noiseGain.gain.setValueAtTime(0.8, time);
+                noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.12); // Hyper-staccato
+                
+                noise.connect(noiseFilter);
+                noiseFilter.connect(noiseGain);
+                noiseGain.connect(this.masterGain);
+
+                // Punchy resonant body (The Drum Head)
+                const osc = this.ctx.createOscillator();
+                osc.type = 'triangle'; 
+                const oscGain = this.ctx.createGain();
+                
+                osc.frequency.setValueAtTime(250, time);
+                osc.frequency.exponentialRampToValueAtTime(120, time + 0.1);
+                
+                oscGain.gain.setValueAtTime(0.7, time);
+                oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+
+                osc.connect(oscGain);
+                oscGain.connect(this.masterGain);
+
+                noise.start(time); osc.start(time);
+                noise.stop(time + 0.2); osc.stop(time + 0.2);
+            }
+
+            // High-pass Analog Hi-Hats (Staccato)
+            playHat(time, vol) {
+                this.pulse.high = Math.max(this.pulse.high, vol * 3.0); // Micro pulse
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = this.noiseBuffer;
+                const hp = this.ctx.createBiquadFilter();
+                hp.type = 'highpass';
+                hp.frequency.value = 9500;
+                
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(vol, time);
+                gain.gain.setTargetAtTime(0.001, time + 0.01, 0.02); // Extreme staccato decay
+
+                noise.connect(hp);
+                hp.connect(gain);
+                gain.connect(this.masterGain);
+
+                noise.start(time);
+                noise.stop(time + 0.05);
+            }
+
+            // Seamless Portamento Bass Trigger
+            setBassFrequency(time, freq) {
+                const glideTime = 0.15; // 150ms glide for seamless switch
+                
+                // Stacked Octaves holding perfectly together
+                this.bassOscSub.frequency.setTargetAtTime(freq / 2, time, glideTime); // Sub Octave
+                this.bassOscMid.frequency.setTargetAtTime(freq, time, glideTime);     // Root
+                this.bassOscHigh.frequency.setTargetAtTime((freq * 2) + 0.5, time, glideTime); // High Octave (slight detune for width)
+                
+                // Filter envelope for rhythm "pump"
+                this.bassFilter.frequency.setValueAtTime(400, time);
+                this.bassFilter.frequency.exponentialRampToValueAtTime(90, time + 0.5);
+                
+                // Keep gain high during playing
+                this.bassGain.gain.setTargetAtTime(0.7, time, 0.05);
+            }
+
+            scheduleNote(beat, time) {
+                const step32 = this.totalSteps % 32;
+
+                // Kick: boom-boom-BAP, boom-boom/boom-boom - BAP
+                if (step32 === 0 || step32 === 2 || step32 === 16 || step32 === 18 || step32 === 20 || step32 === 22) {
+                    this.playKick(time);
+                }
+
+                // Snare: BAP
+                if (step32 === 8 || step32 === 24) {
+                    this.playSnare(time);
+                }
+
+                // Hats: Staccato on all 16ths with humanized velocity
+                const isAccent = (beat % 4 === 0);
+                const isOffbeat = (beat % 2 !== 0);
+                const hatVelocity = isAccent ? 0.25 : (isOffbeat ? 0.08 : 0.15);
+                this.playHat(time, hatVelocity);
+
+                // Bassline: Seamless portamento progression across 3 tones
+                const step64 = this.totalSteps % 64;
+                if (step64 === 0) {
+                    this.setBassFrequency(time, 58.27); // Tone 1: Bb1 (IV) - Acoustic Sweet Spot
+                } else if (step64 === 32) {
+                    this.setBassFrequency(time, 65.41); // Tone 2: C2 (V) - Remains Exact
+                } else if (step64 === 48) {
+                    this.setBassFrequency(time, 87.31); // Tone 3: F2 (I) - Remains Exact
+                }
+            }
+
+            scheduler() {
+                while (this.nextNoteTime < this.ctx.currentTime + 0.1) {
+                    this.scheduleNote(this.current16thNote, this.nextNoteTime);
+                    this.nextNote();
+                }
+                this.timerID = setTimeout(() => this.scheduler(), 25);
+            }
+        }
+
         const sys = {
-            scroll: { current: 0, target: 0, ease: 0.08, velo: 0, scale: 1.0, blur: 0 },
+            scroll: { current: 0, target: 0, ease: 0.08, velo: 0, scale: 1.0 },
             mouse: { x: 0, y: 0, tx: 0, ty: 0 },
-            gyro: { x: 0, y: 0, tx: 0, ty: 0, active: false },
-            router: { active: false, depthEase: 0 },
+            gyro: { x: 0, y: 0, tx: 0, ty: 0, active: false }, 
             screen: { w: window.innerWidth, h: window.innerHeight },
-            time: { start: Date.now(), delta: 0, last: Date.now() }
+            time: { start: Date.now(), delta: 0, last: Date.now() },
+            audio: new AudioEngine()
         };
 
         document.addEventListener('DOMContentLoaded', () => {
-
-            // --- 1. SPATIAL DOM ROUTER ---
-            const viewer = document.getElementById('artifact-viewer');
-            const frame = document.getElementById('viewer-frame');
-            const closeBtn = document.getElementById('viewer-close');
-            const targetName = document.getElementById('viewer-target-name');
-
-            document.querySelectorAll('.artifact-link').forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const url = link.getAttribute('href');
-                    const title = link.getAttribute('data-title');
-                    
-                    sys.router.active = true;
-                    targetName.textContent = title;
-                    viewer.classList.add('active');
-                    
-                    // Delay frame load slightly to match spatial pullback animation
-                    setTimeout(() => { frame.src = url; }, 300);
-                    
-                    if(window.history.pushState) {
-                        window.history.pushState({view: 'artifact'}, '', `#${title.replace(/\s+/g, '')}`);
-                    }
-                });
+            // Audio System Switch
+            const ioSwitch = document.getElementById('io-switch');
+            ioSwitch.addEventListener('click', () => {
+                const isPressed = ioSwitch.getAttribute('aria-pressed') === 'true';
+                if (isPressed) {
+                    ioSwitch.setAttribute('aria-pressed', 'false');
+                    sys.audio.stop();
+                } else {
+                    ioSwitch.setAttribute('aria-pressed', 'true');
+                    sys.audio.init();
+                }
             });
 
-            const closeRouter = () => {
-                viewer.classList.remove('active');
-                sys.router.active = false;
-                setTimeout(() => { frame.src = ''; }, 600);
-                if(window.history.pushState) {
-                    window.history.pushState('', document.title, window.location.pathname);
-                }
+            // Bulletproof Modal Logic
+            const btnTrigger = document.getElementById('btn-trigger-modal');
+            const btnClose = document.getElementById('btn-close-modal');
+            const modal = document.getElementById('contact-modal');
+            
+            const openModal = () => {
+                document.body.classList.add('modal-open');
+                modal.classList.add('active');
             };
-            closeBtn.addEventListener('click', closeRouter);
-
-            // --- 2. HARDWARE TELEMETRY (GYROSCOPE) ---
-            const initGyro = () => {
-                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                    // iOS 13+ requires explicit permission gesture
-                    DeviceOrientationEvent.requestPermission()
-                        .then(permissionState => {
-                            if (permissionState === 'granted') {
-                                window.addEventListener('deviceorientation', handleGyro);
-                            }
-                        }).catch(console.error);
-                } else {
-                    // Non iOS 13+ devices
-                    window.addEventListener('deviceorientation', handleGyro);
-                }
+            const closeModal = () => {
+                document.body.classList.remove('modal-open');
+                modal.classList.remove('active');
             };
 
+            btnTrigger.addEventListener('click', openModal);
+            btnClose.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if(e.target === modal) closeModal();
+            });
+
+            // FormSubmit AJAX
+            const intakeForm = document.getElementById('main-intake-form');
+            intakeForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitBtn = intakeForm.querySelector('.submit-btn');
+                const ogText = submitBtn.textContent;
+                submitBtn.textContent = "TRANSMITTING...";
+                submitBtn.style.pointerEvents = "none";
+                
+                try {
+                    const formData = new FormData(intakeForm);
+                    await fetch(intakeForm.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    submitBtn.textContent = "TRANSMISSION SUCCESS";
+                    submitBtn.style.backgroundColor = "var(--accent-cyan)";
+                    submitBtn.style.color = "#000";
+                    setTimeout(() => {
+                        submitBtn.textContent = ogText;
+                        submitBtn.style.backgroundColor = "";
+                        submitBtn.style.color = "";
+                        submitBtn.style.pointerEvents = "auto";
+                        intakeForm.reset();
+                        closeModal();
+                    }, 2500);
+                } catch(err) {
+                    submitBtn.textContent = "TRANSMISSION FAILED";
+                    submitBtn.style.backgroundColor = "var(--accent-violet)";
+                    setTimeout(() => { 
+                        submitBtn.textContent = ogText; 
+                        submitBtn.style.backgroundColor = "";
+                        submitBtn.style.pointerEvents = "auto";
+                    }, 3000);
+                }
+            });
+
+            const inputs = document.querySelectorAll('input, textarea');
+            inputs.forEach(el => {
+                el.addEventListener('mouseenter', () => document.body.classList.add('input-hover'));
+                el.addEventListener('mouseleave', () => document.body.classList.remove('input-hover'));
+            });
+
+            // Gyroscope Hardware Integration Preserved Strictly
             const handleGyro = (event) => {
                 if(!event.beta || !event.gamma) return;
                 sys.gyro.active = true;
-                
-                // Gamma: Left/Right tilt (-90 to 90) -> Normalized to -1 to 1
-                let gX = event.gamma / 45.0; 
-                // Beta: Front/Back tilt (-180 to 180). Offset by 45deg (natural holding angle)
-                let gY = (event.beta - 45.0) / 45.0; 
-                
-                // Clamp telemetry to avoid wild spinning
-                sys.gyro.tx = Math.max(-1.5, Math.min(1.5, gX));
-                sys.gyro.ty = Math.max(-1.5, Math.min(1.5, gY));
+                sys.gyro.tx = Math.max(-1.5, Math.min(1.5, event.gamma / 45.0));
+                sys.gyro.ty = Math.max(-1.5, Math.min(1.5, (event.beta - 45.0) / 45.0));
             };
+            window.addEventListener('touchstart', () => {
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    DeviceOrientationEvent.requestPermission().then(s => { if(s === 'granted') window.addEventListener('deviceorientation', handleGyro); });
+                } else window.addEventListener('deviceorientation', handleGyro);
+            }, { once: true });
 
-            // Bind sensor payload to first user gesture (bypass browser security blocks)
-            window.addEventListener('touchstart', initGyro, { once: true });
-            window.addEventListener('click', initGyro, { once: true });
-
-            // --- 3. RAYMARCHING GPU ENGINE ---
+            // WebGL Initialization
             const canvas = document.getElementById('glcanvas');
             const gl = canvas.getContext('webgl', { alpha: false, antialias: false });
-            
             if (gl) {
                 const compile = (type, src) => {
                     const s = gl.createShader(type);
                     gl.shaderSource(s, src);
                     gl.compileShader(s);
-                    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) return null;
                     return s;
                 };
-
                 const prog = gl.createProgram();
                 gl.attachShader(prog, compile(gl.VERTEX_SHADER, document.getElementById('vs').textContent));
                 gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, document.getElementById('fs').textContent));
                 gl.linkProgram(prog);
                 gl.useProgram(prog);
-
                 const posBuf = gl.createBuffer();
                 gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
-                
                 const posLoc = gl.getAttribLocation(prog, "position");
                 gl.enableVertexAttribArray(posLoc);
                 gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-
+                
                 const uRes = gl.getUniformLocation(prog, "u_res");
                 const uTime = gl.getUniformLocation(prog, "u_time");
                 const uMouse = gl.getUniformLocation(prog, "u_mouse");
                 const uGyro = gl.getUniformLocation(prog, "u_gyro");
                 const uScroll = gl.getUniformLocation(prog, "u_scroll");
                 const uVelo = gl.getUniformLocation(prog, "u_velo");
-                const uRouterDepth = gl.getUniformLocation(prog, "u_router_depth");
-
+                
+                const uAudioLow = gl.getUniformLocation(prog, "u_audio_low");
+                const uAudioHigh = gl.getUniformLocation(prog, "u_audio_high");
+                
                 const resize = () => {
-                    sys.screen.w = window.innerWidth;
-                    sys.screen.h = window.innerHeight;
-                    canvas.width = sys.screen.w;
-                    canvas.height = sys.screen.h;
+                    sys.screen.w = window.innerWidth; sys.screen.h = window.innerHeight;
+                    canvas.width = sys.screen.w; canvas.height = sys.screen.h;
                     gl.viewport(0, 0, sys.screen.w, sys.screen.h);
                     gl.uniform2f(uRes, sys.screen.w, sys.screen.h);
                 };
                 window.addEventListener('resize', resize);
                 resize();
-
+                
                 sys.renderGL = () => {
                     const now = Date.now();
-                    
-                    // Mouse Lerp
                     sys.mouse.x += (sys.mouse.tx - sys.mouse.x) * 0.05;
                     sys.mouse.y += (sys.mouse.ty - sys.mouse.y) * 0.05;
-                    const nx = (sys.mouse.x / sys.screen.w) * 2 - 1;
-                    const ny = -(sys.mouse.y / sys.screen.h) * 2 + 1;
-
-                    // Gyro Lerp
                     if(sys.gyro.active) {
                         sys.gyro.x += (sys.gyro.tx - sys.gyro.x) * 0.08;
                         sys.gyro.y += (sys.gyro.ty - sys.gyro.y) * 0.08;
                     }
-
                     gl.uniform1f(uTime, (now - sys.time.start) / 1000.0);
-                    gl.uniform2f(uMouse, nx, ny);
+                    gl.uniform2f(uMouse, (sys.mouse.x/sys.screen.w)*2-1, -((sys.mouse.y/sys.screen.h)*2-1));
                     gl.uniform2f(uGyro, sys.gyro.x, sys.gyro.y);
                     gl.uniform1f(uScroll, sys.scroll.current);
                     gl.uniform1f(uVelo, Math.abs(sys.scroll.velo));
-                    gl.uniform1f(uRouterDepth, sys.router.depthEase);
+                    
+                    gl.uniform1f(uAudioLow, sys.audio.pulse.low);
+                    gl.uniform1f(uAudioHigh, sys.audio.pulse.high);
                     
                     gl.drawArrays(gl.TRIANGLES, 0, 6);
                 };
             }
 
-            // --- 4. ENGINE MASTER LOOP ---
+            // Interface Kinetics
             const wrapper = document.getElementById('smooth-wrapper');
             const dot = document.getElementById('cursor-dot');
             const ring = document.getElementById('cursor-ring');
             let cx = sys.screen.w/2, cy = sys.screen.h/2;
             let rx = cx, ry = cy;
-
+            
             window.addEventListener('mousemove', (e) => {
                 sys.mouse.tx = e.clientX; sys.mouse.ty = e.clientY;
                 cx = e.clientX; cy = e.clientY;
                 dot.style.transform = `translate(calc(${cx}px - 50%), calc(${cy}px - 50%))`;
             });
-
+            
             document.querySelectorAll('.mag-wrap').forEach(wrap => {
                 const target = wrap.querySelector('.mag-target');
+                if(!target) return;
                 wrap.addEventListener('mousemove', (e) => {
                     const r = wrap.getBoundingClientRect();
-                    const tx = (e.clientX - (r.left + r.width/2)) * 0.3;
-                    const ty = (e.clientY - (r.top + r.height/2)) * 0.3;
-                    target.style.transform = `translate(${tx}px, ${ty}px)`;
+                    target.style.transform = `translate(${(e.clientX - (r.left + r.width/2)) * 0.3}px, ${(e.clientY - (r.top + r.height/2)) * 0.3}px)`;
                 });
                 wrap.addEventListener('mouseleave', () => { target.style.transform = `translate(0,0)`; });
             });
-
+            
             document.querySelectorAll('[data-hover]').forEach(el => {
                 el.addEventListener('mouseenter', () => document.body.classList.add('hover-active'));
                 el.addEventListener('mouseleave', () => document.body.classList.remove('hover-active'));
@@ -734,33 +1196,24 @@
             window.addEventListener('resize', setHeight);
             window.addEventListener('scroll', () => { sys.scroll.target = window.scrollY; });
             setTimeout(setHeight, 500);
-
+            
             const loop = () => {
-                // 1. Scroll physics
                 const prev = sys.scroll.current;
                 sys.scroll.current += (sys.scroll.target - sys.scroll.current) * sys.scroll.ease;
                 sys.scroll.velo = sys.scroll.current - prev;
                 
-                // 2. Spatial DOM transform (Router injection)
-                const targetScale = sys.router.active ? 0.90 : 1.0;
-                const targetBlur = sys.router.active ? 15 : 0;
+                // Decay audio pulses cleanly and deterministically
+                sys.audio.pulse.low += (0.0 - sys.audio.pulse.low) * 0.1;
+                sys.audio.pulse.high += (0.0 - sys.audio.pulse.high) * 0.15;
                 
-                sys.scroll.scale += (targetScale - sys.scroll.scale) * 0.08;
-                sys.scroll.blur += (targetBlur - sys.scroll.blur) * 0.08;
-                sys.router.depthEase += ((sys.router.active ? 1.0 : 0.0) - sys.router.depthEase) * 0.08;
-
-                // Push entire DOM backwards when artifact opens
-                wrapper.style.transform = `translate3d(0, ${-sys.scroll.current}px, 0) scale(${sys.scroll.scale})`;
-                wrapper.style.filter = `blur(${sys.scroll.blur}px)`;
-                wrapper.style.opacity = sys.scroll.scale < 0.99 ? sys.scroll.scale : 1;
-
-                // 3. Cursor spring
+                if (!document.body.classList.contains('modal-open')) {
+                    wrapper.style.transform = `translate3d(0, ${-sys.scroll.current}px, 0)`;
+                }
+                
                 rx += (cx - rx) * 0.15; ry += (cy - ry) * 0.15;
                 ring.style.transform = `translate(calc(${rx}px - 50%), calc(${ry}px - 50%))`;
-
-                // 4. Dispatch GL Render
+                
                 if(sys.renderGL) sys.renderGL();
-
                 requestAnimationFrame(loop);
             };
             loop();
