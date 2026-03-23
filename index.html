@@ -824,9 +824,9 @@
                     this.bassOscHigh.start();
                     
                     // Initial target lock
-                    this.bassOscSub.frequency.value = 43.65 / 2;
-                    this.bassOscMid.frequency.value = 43.65;
-                    this.bassOscHigh.frequency.value = 43.65 * 2;
+                    this.bassOscSub.frequency.value = 58.27 / 2;
+                    this.bassOscMid.frequency.value = 58.27;
+                    this.bassOscHigh.frequency.value = 58.27 * 2;
                 }
                 if(this.ctx.state === 'suspended') this.ctx.resume();
                 this.isPlaying = true;
@@ -972,11 +972,11 @@
                 // Bassline: Seamless portamento progression across 3 tones
                 const step64 = this.totalSteps % 64;
                 if (step64 === 0) {
-                    this.setBassFrequency(time, 43.65); // Tone 1: F1
+                    this.setBassFrequency(time, 58.27); // Tone 1: Bb1 (IV) - Acoustic Sweet Spot
                 } else if (step64 === 32) {
-                    this.setBassFrequency(time, 65.41); // Tone 2: C2 (Perfect 5th)
+                    this.setBassFrequency(time, 65.41); // Tone 2: C2 (V) - Remains Exact
                 } else if (step64 === 48) {
-                    this.setBassFrequency(time, 87.31); // Tone 3: F2 (Octave)
+                    this.setBassFrequency(time, 87.31); // Tone 3: F2 (I) - Remains Exact
                 }
             }
 
