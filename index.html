@@ -604,6 +604,9 @@
         uniform vec2 u_gyro; 
         uniform float u_scroll;
         uniform float u_velo;
+        
+        uniform float u_audio_low;
+        uniform float u_audio_high;
 
         vec3 hash(vec3 p) {
             p = vec3(dot(p,vec3(127.1,311.7, 74.7)),
@@ -644,8 +647,8 @@
             p.xz *= rot(u_time * 0.1 + inputVector.x * 2.0);
             p.yz *= rot(u_time * 0.05 + u_scroll * 0.002 - inputVector.y * 2.0);
             
-            float core = length(p) - 1.8; 
-            float n = fbm(p * 1.5 + u_time * 0.2) * 1.2;
+            float core = length(p) - (1.8 + u_audio_low * 0.05); 
+            float n = fbm(p * 1.5 + u_time * 0.2) * (1.2 + u_audio_low * 0.15);
             float veloSpike = u_velo * 0.01 * noise(p * 5.0);
             
             return core + n + veloSpike;
@@ -710,6 +713,11 @@
                 float spec = pow(max(dot(n, normalize(l1 + v)), 0.0), 32.0);
                 objCol += spec * vec3(1.0);
                 
+                // Micro electro-pulses matching high frequencies (snares/hats)
+                float microCracks = smoothstep(0.04, 0.0, abs(noise(p * 8.0 - u_time * 3.0)));
+                vec3 electroColor = vec3(0.6, 1.0, 0.9) * microCracks * u_audio_high * 1.8;
+                objCol += electroColor * fresnel; // Masked to edges to prevent blowout
+                
                 col = mix(objCol, col, 1.0 - exp(-0.05 * t * t));
             }
             
@@ -729,6 +737,7 @@
                 this.totalSteps = 0;
                 this.timerID = null;
                 this.noiseBuffer = null;
+                this.pulse = { low: 0, high: 0 }; // Deterministic visual bridging
                 
                 // Persistent Bass Synth Nodes
                 this.bassOscSub = null;
@@ -857,6 +866,7 @@
 
             // The Cinematic Thud (Physics-modeled pitch dive)
             playKick(time) {
+                this.pulse.low = 1.0; // Trigger visual pulse
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
                 
@@ -879,6 +889,7 @@
 
             // Premium Staccato Snare (Modeled wire snap + resonant body)
             playSnare(time) {
+                this.pulse.high = 1.0; // Trigger high pulse
                 // Crisp analog noise snap (The Wires)
                 const noise = this.ctx.createBufferSource();
                 noise.buffer = this.noiseBuffer;
@@ -915,6 +926,7 @@
 
             // High-pass Analog Hi-Hats (Staccato)
             playHat(time, vol) {
+                this.pulse.high = Math.max(this.pulse.high, vol * 3.0); // Micro pulse
                 const noise = this.ctx.createBufferSource();
                 noise.buffer = this.noiseBuffer;
                 const hp = this.ctx.createBiquadFilter();
@@ -1118,6 +1130,9 @@
                 const uScroll = gl.getUniformLocation(prog, "u_scroll");
                 const uVelo = gl.getUniformLocation(prog, "u_velo");
                 
+                const uAudioLow = gl.getUniformLocation(prog, "u_audio_low");
+                const uAudioHigh = gl.getUniformLocation(prog, "u_audio_high");
+                
                 const resize = () => {
                     sys.screen.w = window.innerWidth; sys.screen.h = window.innerHeight;
                     canvas.width = sys.screen.w; canvas.height = sys.screen.h;
@@ -1140,6 +1155,10 @@
                     gl.uniform2f(uGyro, sys.gyro.x, sys.gyro.y);
                     gl.uniform1f(uScroll, sys.scroll.current);
                     gl.uniform1f(uVelo, Math.abs(sys.scroll.velo));
+                    
+                    gl.uniform1f(uAudioLow, sys.audio.pulse.low);
+                    gl.uniform1f(uAudioHigh, sys.audio.pulse.high);
+                    
                     gl.drawArrays(gl.TRIANGLES, 0, 6);
                 };
             }
@@ -1181,6 +1200,10 @@
                 const prev = sys.scroll.current;
                 sys.scroll.current += (sys.scroll.target - sys.scroll.current) * sys.scroll.ease;
                 sys.scroll.velo = sys.scroll.current - prev;
+                
+                // Decay audio pulses cleanly and deterministically
+                sys.audio.pulse.low += (0.0 - sys.audio.pulse.low) * 0.1;
+                sys.audio.pulse.high += (0.0 - sys.audio.pulse.high) * 0.15;
                 
                 if (!document.body.classList.contains('modal-open')) {
                     wrapper.style.transform = `translate3d(0, ${-sys.scroll.current}px, 0)`;
